@@ -1,7 +1,9 @@
 #include <Arduino.h>
-#include "config_atmega.h"
 #include "functionPrototype.h"
-#include <math.h>
+extern bool cell_current_addresses[6][4];
+extern const unsigned int cur_average_sample_count;
+extern unsigned char cur_sen_ads_location[6];
+extern const float acs_sensitivity;
 
 float measureCellCurrentACS(unsigned char cell_id)
 {

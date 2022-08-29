@@ -4,41 +4,56 @@
 // #include <avr/interrupt.h>
 // #include "avr8-stub.h"
 
-#ifndef CUSTOM_H
-#define CUSTOM_H
 #include "functionPrototype.h"
 #include "config_atmega.h"
-#endif
+#include "config_const.h"
 
-
-#ifndef ADAFRUIT_ADS1X15_H
-#define ADAFRUIT_ADS1X15_H
 #include <Adafruit_ADS1X15.h>
 #include <SPI.h>
 Adafruit_ADS1115 ads;
-#endif
-
 
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
 
-DHT  dht[] = {{DHTPIN_1, DHTTYPE_1},{DHTPIN_2, DHTTYPE_2},{DHTPIN_3, DHTTYPE_3},{DHTPIN_4, DHTTYPE_4}};
+#include "MCP_DAC.h"
+MCP4921 MCP[6] = {{}, {}, {}, {}, {}, {}}; // create 6 instances of MCP4921
 
-DHT sht(12,DHT22);
+#include <SPI.h>
+#include <SD.h>
+File myFile;
 
-void setup() {
-  // put your setup code here, to run once:
-  //debug_init();
+
+DHT dht[] = {{DHTPIN_1, DHTTYPE_1}, {DHTPIN_2, DHTTYPE_2}, {DHTPIN_3, DHTTYPE_3}, {DHTPIN_4, DHTTYPE_4}};
+
+void setup()
+{
+  // debug_init();
   Serial.begin(115200);
   pinMode(13, OUTPUT);
-  while(!ads.begin()){
-    Serial.println("ADS initialization failed.");
+  while (!ads.begin())
+  {
+    Serial.println(F("ADS initialization failed."));
+    delay(500);
+    Serial.println(F("Trying to reinitialize."));
+    delay(1000);
   }
-  doNothing();
-  measureCellVoltage(2);
+  Serial.println(F("ADS initialization success."));
+  while (!SD.begin(SD_card_module_cs))
+  {
+    Serial.println(F("SD initialization failed."));
+    delay(1000);
+    Serial.println(F("Trying to reinitialize."));
+    delay(1000);
+  }
+  Serial.println(F("SD initialization success."));
+  for (unsigned char i = 0; i < no_of_discharger_connected; i++)
+  {
+    MCP[i].begin(chip_select_pin_location_discharger[i]);
+  }
 }
 
-void loop() {
+void loop()
+{
   // put your main code here, to run repeatedly:
   digitalWrite(13, true);
   delay(1000);
