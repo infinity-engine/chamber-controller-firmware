@@ -1,4 +1,36 @@
 #include <DHT.h>
+#include "config_atmega.h"
+
+struct CellMeasurement{
+    unsigned char cellId;
+    float current;
+    float voltage;
+    float temperature[maxNoOfTempSensorPerCell];
+    float avgTemperature;
+
+};
+
+struct CellParameters{
+    unsigned char cellId;
+    float maxVoltage;
+    float minVoltage;
+    float maxTemp;
+    float minTemp;
+};
+
+struct ExperimentParameters{
+    unsigned char mode; // 1 - "ConstantCurrentCharge"| 2 - "ConstantCurrentDischarge"| 3 - "ConstantResistanceCharge"| 4 - "ConstantResistanceDischarge"|5 - "ConstantPowerCharge"| 6- "ConstantPowerDischarge";
+    float chargeRate;
+    float disChargeRate;
+    float resVal;
+    float powVal;
+    unsigned long timeLimit;
+    unsigned long startTime;
+    unsigned long prevTime;
+    float curToll;//currentTollerence
+    unsigned int sampleIndicator;//drive cycle sample indicator
+    unsigned int samples;
+};
 
 void channelTheMux(bool address[]);
 float * measureCellTemperature(unsigned char cell_id);
@@ -17,3 +49,6 @@ float getDischargerCurrent(unsigned char discharger_id);
 float getDischargerMosfetTemp(unsigned char discharger_id);
 void takeApprActForDischFan(unsigned char discharger_id, bool over_write = false, bool fan_status = false);
 float myMap(float x, float in_min, float in_max, float out_min, float out_max);
+float measureAvgCellTemp(unsigned char cell_id);
+unsigned char perFormDriveCycle(CellParameters &parameters,CellMeasurement &measurement,ExperimentParameters &expParms,int sampleTime=1000,unsigned long curTime = millis());
+

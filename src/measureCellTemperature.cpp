@@ -7,7 +7,7 @@ extern const unsigned int temp_average_sample_count;
 extern unsigned char tem_sen_ads_location[6][6];
 extern const float ntc_a, ntc_b, ntc_c;
 
-float *measureCellTemperature(unsigned char cell_id)
+float *measureCellTemperature(unsigned char cell_id, float *temps)
 {
     // cell_id starts from 1,2...6
 
@@ -15,7 +15,6 @@ float *measureCellTemperature(unsigned char cell_id)
     float R_1 = 200000.0; // ohm
 
     // store all the temperature for a particular cell
-    float temps[no_of_temp_sen_connected_cell[cell_id - 1]];
 
     for (unsigned char curr_sen = 0; curr_sen < no_of_temp_sen_connected_cell[cell_id - 1]; curr_sen++)
     {
@@ -36,4 +35,15 @@ float *measureCellTemperature(unsigned char cell_id)
         temps[curr_sen] = t;
     }
     return temps;
+}
+float measureAvgCellTemp(unsigned char cell_id)
+{
+    float temps[no_of_temp_sen_connected_cell[cell_id - 1]];
+    float *result_arr = measureCellTemperature(cell_id, temps);
+    float sum = 0;
+    for (unsigned int i = 0; i < no_of_temp_sen_connected_cell[cell_id - 1]; i++)
+    {
+        sum += result_arr[i];
+    }
+    return sum / no_of_temp_sen_connected_cell[cell_id - 1];
 }

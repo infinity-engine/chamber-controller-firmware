@@ -8,6 +8,7 @@
 #include "config_atmega.h"
 #include "config_const.h"
 
+
 #include <Adafruit_ADS1X15.h>
 #include <SPI.h>
 Adafruit_ADS1115 ads;
@@ -55,8 +56,5 @@ void setup()
 void loop()
 {
   // put your main code here, to run repeatedly:
-  digitalWrite(13, true);
-  delay(1000);
-  digitalWrite(13, false);
-  delay(1000);
+  
 }

@@ -9,6 +9,9 @@
 #define S2 41
 #define S3 39
 
+// temp sensor
+#define maxNoOfTempSensorPerCell 6
+
 //DHT sensor
 #define DHTPIN_1 29
 #define DHTPIN_2 27
@@ -29,6 +32,17 @@
 //change it accordingly
 //whether the charging/discharging is connected on NC/NO of relay
 #define relay_cell_charge true
-#define relay_cell_Discharge false
+#define relay_cell_discharge false
 
 #define SD_card_module_cs 53
+
+
+//charging-discharging method
+#define ConstantCurrentCharge 1
+#define ConstantCurrentDischarge 2
+#define ConstantResistanceCharge 3
+#define ConstantResistanceDischarge 4
+#define ConstantPowerCharge 5
+#define ConstantPowerDischarge 6
+#define DriveCycle 7
+
