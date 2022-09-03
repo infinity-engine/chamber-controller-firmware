@@ -1,5 +1,7 @@
 #include <Arduino.h>
+#ifndef PROTOTYPE
 #include "functionPrototype.h"
+#endif
 extern bool cell_current_addresses[6][4];
 extern const unsigned int cur_average_sample_count;
 extern unsigned char cur_sen_ads_location[6];

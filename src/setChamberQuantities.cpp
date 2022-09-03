@@ -1,5 +1,7 @@
 #include "config_atmega.h"
+#ifndef PROTOTYPE
 #include "functionPrototype.h"
+#endif
 
 extern const unsigned char chamber_heater_relay_pin;
 extern const unsigned char chamber_cooler_relay_pin;

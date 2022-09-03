@@ -1,7 +1,11 @@
 #include <Arduino.h>
 #include <string.h>
+#ifndef CONFIG_ATMEGA
 #include "config_atmega.h"
+#endif
+#ifndef PROTOTYPE
 #include "functionPrototype.h"
+#endif
 
 
 class ConstantChargeDischarge

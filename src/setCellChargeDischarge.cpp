@@ -1,5 +1,7 @@
 #include "config_atmega.h"
+#ifndef PROTOTYPE
 #include "functionPrototype.h"
+#endif
 extern const unsigned char cell_relay_location[6];
 
 void setCellChargeDischarge(unsigned char cell_id, bool status)

@@ -1,5 +1,7 @@
 #include <DHT.h>
+#ifndef PROTOTYPE
 #include "functionPrototype.h"
+#endif
 
 extern const unsigned char no_of_dht_sensor_connected;
 extern DHT dht[];

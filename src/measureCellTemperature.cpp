@@ -1,5 +1,7 @@
 #include <Arduino.h>
+#ifndef PROTOTYPE
 #include "functionPrototype.h"
+#endif
 
 extern const unsigned char no_of_temp_sen_connected_cell[6];
 extern bool cell_temperature_addresses[6][6][4];

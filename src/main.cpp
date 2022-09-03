@@ -3,12 +3,22 @@
 // #include <avr/io.h>
 // #include <avr/interrupt.h>
 // #include "avr8-stub.h"
-
+#ifndef PROTOTYPE
+#define PROTOTYPE
 #include "functionPrototype.h"
+#endif
+#ifndef CONFIG_ATMEGA
+#define CONFIG_ATMEGA
 #include "config_atmega.h"
+#endif
+#ifndef CONFIG_CONST
+#define CONFIG_CONST
 #include "config_const.h"
-
-
+#endif
+#ifndef CYCCHDIS
+#define CYCCHDIS
+#include "CyclicChargeDischarge.cpp"
+#endif
 #include <Adafruit_ADS1X15.h>
 #include <SPI.h>
 Adafruit_ADS1115 ads;

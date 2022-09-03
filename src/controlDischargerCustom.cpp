@@ -1,4 +1,6 @@
+#ifndef PROTOTYPE
 #include "functionPrototype.h"
+#endif
 #include <MCP_DAC.h>
 
 extern MCP4921 MCP[];

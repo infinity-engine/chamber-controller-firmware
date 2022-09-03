@@ -1,6 +1,7 @@
 #include <Arduino.h>
-
+#ifndef PROTOTYPE
 #include "functionPrototype.h"
+#endif
 
 unsigned char perFormDriveCycle(CellParameters &parameters,CellMeasurement &measurement,ExperimentParameters &expParms,int sampleTime,unsigned long curTime){
     return 0;

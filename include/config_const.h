@@ -1,4 +1,6 @@
+#ifndef CONFIG_ATMEGA
 #include "config_atmega.h"
+#endif
 
 //A const global variable has internal linkage by default. 
 //If you want the variable to have external linkage, apply the extern keyword to the definition, and to all other declarations in other files:

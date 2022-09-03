@@ -1,5 +1,7 @@
 #include <Arduino.h>
+#ifndef PROTOTYPE
 #include "functionPrototype.h"
+#endif
 #include <math.h>
 
 extern bool cell_voltage_addresses[6][4];
