@@ -11,7 +11,7 @@
 class ConstantChargeDischarge
 {
 public:
-    unsigned isFinished; // 0 for not finished, 1 for finished, 2 for stopped for safety
+    unsigned isFinished; // 0 for not finished/running, 1 for finished, 2 for stopped for safety
     struct CellMeasurement measurement;
     struct CellParameters parameters;
     struct ExperimentParameters expParamters;
