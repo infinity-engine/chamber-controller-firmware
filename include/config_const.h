@@ -6,13 +6,13 @@
 //If you want the variable to have external linkage, apply the extern keyword to the definition, and to all other declarations in other files:
 
 extern const unsigned char no_of_temp_sen_connected_cell[6] = {6, 6, 6, 6, 6, 6}; // set the no of temperature connected in each cells
-extern const unsigned int temp_average_sample_count = 100;                       // set the no. of samples for avereging the temperature readings
+extern const unsigned int temp_average_sample_count = 2;                       // set the no. of samples for avereging the temperature readings
 
 //voltage sensor
-extern const unsigned int vol_average_sample_count = 50;                         // set the no. of samples for averaging the voltage measurement
+extern const unsigned int vol_average_sample_count = 5;                         // set the no. of samples for averaging the voltage measurement
 
 //current sensor
-extern const unsigned int cur_average_sample_count = 250;                        // set the no. of samples for averaging the current measurement
+extern const unsigned int cur_average_sample_count = 10;                        // set the no. of samples for averaging the current measurement
 extern const float acs_sensitivity = 0.1; // 0.1 - 20A range, 0.185 - 5A range, 0.066 - 30A range 
 
 // NTC 100K parameters

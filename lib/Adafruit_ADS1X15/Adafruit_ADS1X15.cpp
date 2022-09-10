@@ -38,7 +38,7 @@
 Adafruit_ADS1015::Adafruit_ADS1015() {
   m_bitShift = 4;
   m_gain = GAIN_TWOTHIRDS; /* +/- 6.144V range (limited to VDD +0.3V max!) */
-  m_dataRate = RATE_ADS1015_1600SPS;
+  m_dataRate = RATE_ADS1015_1600SPS;//modified by infinity-engine for the fastest rate
 }
 
 /**************************************************************************/
@@ -49,7 +49,7 @@ Adafruit_ADS1015::Adafruit_ADS1015() {
 Adafruit_ADS1115::Adafruit_ADS1115() {
   m_bitShift = 0;
   m_gain = GAIN_TWOTHIRDS; /* +/- 6.144V range (limited to VDD +0.3V max!) */
-  m_dataRate = RATE_ADS1115_128SPS;
+  m_dataRate = RATE_ADS1115_860SPS;
 }
 
 /**************************************************************************/

@@ -15,15 +15,14 @@ public:
     struct CellMeasurement measurement;
     struct CellParameters parameters;
     struct ExperimentParameters expParamters;
-    unsigned int driveCycleSampleIndicator = 0;
+    unsigned int driveCycleSampleIndicator = 0;//represent on which sample it is currently on
 
-    ConstantChargeDischarge(unsigned char cell_id, unsigned char mode = 1)
+    ConstantChargeDischarge(unsigned char cell_id, unsigned char mode = 2)
     {
         isFinished = 0;
         measurement.cellId = cell_id;
         parameters = {cell_id, 4.2, 3.0, 80, -20};
         expParamters = {mode, 0, 0, 0, 0, 0, 0, 0, 0.1,0,22};
-        setup();
     }
 
     void setup()

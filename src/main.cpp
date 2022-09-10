@@ -68,6 +68,7 @@ void fillExp()
       // start the exp
       // exps.exp[i] = instance;
       // set noOfSubExps
+      // potential new api call
       exps.curExpStatus[i] = 0;
       exps.isFreeForNewExps[i] = false;
       exps.nthCurExp[i] = 1;
@@ -86,7 +87,9 @@ void runExp()
     if (exps.exp[i] != NULL && exps.curExpStatus[i] == 0 && exps.isFreeForNewExps[i] == false)
     {
       // get the details and do what you wanna do with it and update curExpStatus if required
-      // potential new api calls
+      // potential sd card calls
+      exps.exp[0]->performAction();
+      Serial.println(exps.exp[0]->measurement.current);
     }
     if (exps.curExpStatus[i] == 1)
     {
@@ -125,6 +128,9 @@ void resetChannel(unsigned char channelId)
 
 void test(){
   ConstantChargeDischarge e1 = {1};
+  e1.expParamters.disChargeRate = 0.2;
+  e1.setup();
+  exps.exp[0] = &e1;
 }
 
 void setup()
@@ -152,13 +158,19 @@ void setup()
   {
     MCP[i].begin(chip_select_pin_location_discharger[i]);
   }
+  initExp();
   test();
 }
 
 void loop()
 {
   // put your main code here, to run repeatedly:
-  initExp();
+  unsigned long t = millis();
   fillExp();
+  Serial.print("Fill ");
+  Serial.println(millis()-t);
+  t = millis();
   runExp();
+  Serial.print("Run ");
+  Serial.println(millis()-t);
 }
