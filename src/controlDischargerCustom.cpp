@@ -2,6 +2,8 @@
 #include "functionPrototype.h"
 #endif
 #include <MCP_DAC.h>
+#define current_multiplier_out 1.064
+#define current_multiplier_in 1.0681
 
 extern MCP4921 MCP[];
 extern const unsigned fan_control_pin_location_discharger[6];
@@ -24,7 +26,7 @@ void setDischargerCurrent(unsigned char discharger_id, float set_current)
     // or set_voltage = current_flow*0.01*(340k/10k)
     // or set_voltage = 0.34*current_flow
 
-    float set_voltage = 0.34 * set_current;
+    float set_voltage = 0.34 * set_current * current_multiplier_out;
     unsigned int mcp_eqv = int(myMap(set_voltage, 0, 5, 0, 4095));
     MCP[discharger_id - 1].analogWrite(mcp_eqv, 0);
 }
@@ -39,7 +41,7 @@ float getDischargerCurrent(unsigned char discharger_id)
     // voltage to current equivalent
     // measured_current = measured_voltage/R10
     //  i = (v/gain)/0.01;
-    const float beta = 0.9;
+    const float beta = 0;
     const float gain = 34;
     const float R10 = 0.01; // in ohms
     const unsigned char no_of_samples = 10;
@@ -52,7 +54,8 @@ float getDischargerCurrent(unsigned char discharger_id)
         sum += analogRead(cur_measure_pin_location_discharger[discharger_id - 1]);
     }
     current_measurement = sum / no_of_samples;
-    current_measurement = (current_measurement / gain) / R10; // scale the voltage to current
+    current_measurement = myMap(current_measurement, 0, 1023, 0, 5);                  // scale the 8 bit arduino mega measurement to 5 volt.
+    current_measurement = (current_measurement / gain) / R10 / current_multiplier_in; // scale the voltage to current
     previous_cur_measurement[discharger_id - 1] = beta * previous_cur_measurement[discharger_id - 1] + (1 - beta) * current_measurement;
     return previous_cur_measurement[discharger_id - 1];
 }
@@ -73,7 +76,7 @@ float getDischargerMosfetTemp(unsigned char discharger_id)
         sum += analogRead(temp_measure_pin_location_discharger[discharger_id - 1]);
     }
     current_measurement = sum / no_of_samples;
-    current_measurement = myMap(current_measurement,0,1023,0,5);//scale the 8 bit, 2^8 = 1024 arduino mega measurement to 5 volt.
+    current_measurement = myMap(current_measurement, 0, 1023, 0, 5);                                                       // scale the 8 bit, 2^8 = 1024 arduino mega measurement to 5 volt.
     current_measurement = (-1.0 / b) * (log(((R11 * current_measurement) / (a * (V_0 - current_measurement))) - (c / a))); // scalling the voltage to temp in degC
     previous_temp_measurement[discharger_id - 1] = beta * previous_temp_measurement[discharger_id - 1] + (1 - beta) * current_measurement;
     return previous_temp_measurement[discharger_id - 1];

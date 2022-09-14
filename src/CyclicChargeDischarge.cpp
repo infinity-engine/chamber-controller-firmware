@@ -7,7 +7,6 @@
 #include "functionPrototype.h"
 #endif
 
-
 class ConstantChargeDischarge
 {
 public:
@@ -15,14 +14,20 @@ public:
     struct CellMeasurement measurement;
     struct CellParameters parameters;
     struct ExperimentParameters expParamters;
-    unsigned int driveCycleSampleIndicator = 0;//represent on which sample it is currently on
+    unsigned int driveCycleSampleIndicator = 0; // represent on which sample it is currently on
 
     ConstantChargeDischarge(unsigned char cell_id, unsigned char mode = 2)
     {
         isFinished = 0;
-        measurement.cellId = cell_id;
+        measurement = {
+            parameters.cellId,
+            0,                  // current
+            0,                  // voltage
+            {0, 0, 0, 0, 0, 0}, // temperatures
+            0                   // avgtemperatue
+        };
         parameters = {cell_id, 4.2, 3.0, 80, -20};
-        expParamters = {mode, 0, 0, 0, 0, 0, 0, 0, 0.1,0,22};
+        expParamters = {mode, 0, 0, 0, 0, 0, 0, 0, 0.1, 0, 20};
     }
 
     void setup()
@@ -38,6 +43,7 @@ public:
             setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
             setDischargerCurrent(parameters.cellId, expParamters.disChargeRate);
             expParamters.startTime = millis();
+            takeApprActForDischFan(parameters.cellId, true, true);
             break;
         case ConstantResistanceCharge:
             break;
@@ -49,6 +55,7 @@ public:
             break;
         case DriveCycle:
             expParamters.startTime = millis();
+            takeApprActForDischFan(parameters.cellId, true, true);
             break;
         default:
             break;
@@ -87,7 +94,8 @@ public:
 
     unsigned char performAction()
     {
-        measurement.avgTemperature = measureAvgCellTemp(parameters.cellId);
+        // memcpy(measurement.temperature,measureCellTemperature(parameters.cellId,measurement.temperature),sizeof(measurement.temperature));
+        measureCellTemperature(parameters.cellId, measurement.temperature);
         measurement.voltage = measureCellVoltage(parameters.cellId);
         unsigned char status = 0;
         switch (expParamters.mode)
@@ -150,15 +158,15 @@ public:
         case ConstantPowerDischarge:
             break;
         case DriveCycle:
-            status = perFormDriveCycle(parameters, measurement,expParamters);
+            status = perFormDriveCycle(parameters, measurement, expParamters);
+            //some how calling the above functin is changing the object
             break;
         default:
             status = 0;
             break;
         }
-        //update the time parameters
+        // update the time parameters
         unsigned long curTime = millis();
-        expParamters.prevTime = curTime;
         if (expParamters.timeLimit > 0)
         {
             // if time limit is set

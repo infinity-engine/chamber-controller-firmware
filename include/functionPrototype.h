@@ -8,7 +8,6 @@ struct CellMeasurement{
     float voltage;
     float temperature[maxNoOfTempSensorPerCell];
     float avgTemperature;
-
 };
 
 struct CellParameters{
@@ -34,7 +33,7 @@ struct ExperimentParameters{
 };
 
 void channelTheMux(bool address[]);
-float * measureCellTemperature(unsigned char cell_id);
+float * measureCellTemperature(unsigned char cell_id,float *temps);
 float measureFromADS(unsigned char channel_id);
 float measureCellVoltage(unsigned char cell_id);
 float measureCellCurrentACS(unsigned char cell_id);
@@ -52,4 +51,8 @@ void takeApprActForDischFan(unsigned char discharger_id, bool over_write = false
 float myMap(float x, float in_min, float in_max, float out_min, float out_max);
 float measureAvgCellTemp(unsigned char cell_id);
 unsigned char perFormDriveCycle(CellParameters &parameters,CellMeasurement &measurement,ExperimentParameters &expParms,int sampleTime=1000,unsigned long curTime = millis());
-
+void pinInit();
+void resetChannel(unsigned char channelId);
+void runExp();
+void fillExp();
+void initExp();
