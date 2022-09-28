@@ -96,13 +96,15 @@ void runExp()
     {
       // get the details and do what you wanna do with it and update curExpStatus if required
       // potential sd card calls
-      exps.curExpStatus[i] = exps.exp[0]->performAction();
-      Serial.print("Current(A):");
       Serial.print(exps.exp[0]->measurement.current);
       Serial.print(",Voltage:");
       Serial.print(exps.exp[0]->measurement.voltage);
-      Serial.print(",Cell Temp. 1:");
-      Serial.println(exps.exp[0]->measurement.temperature[0]);
+      Serial.print(",Cell Temp. 1(°C):");
+      Serial.print(exps.exp[0]->measurement.temperature[0]);
+      Serial.print(",Chamber Humidity(%):");
+      Serial.print(exps.exp[0]->chmMeas.avgHum);
+      Serial.print(",Chamber Temp.(°C):");
+      Serial.println(exps.exp[0]->chmMeas.avgTemp);
     }
     if (exps.curExpStatus[i] == 1)
     {
@@ -144,22 +146,22 @@ void resetChannel(unsigned char channelId)
 void test()
 {
   ConstantChargeDischarge e1 = {1,7};
-  e1.expParamters.disChargeRate = 0;
+  e1.expParamters.currentRate = 0;
   e1.setup();
   // ConstantChargeDischarge e2 = {2};
-  // e2.expParamters.disChargeRate = 0.2;
+  // e2.expParamters.currentRate = 0.2;
   // e2.setup();
   // ConstantChargeDischarge e3 = {3};
-  // e3.expParamters.disChargeRate = 0.2;
+  // e3.expParamters.currentRate = 0.2;
   // e3.setup();
   // ConstantChargeDischarge e4 = {4};
-  // e4.expParamters.disChargeRate = 0.2;
+  // e4.expParamters.currentRate = 0.2;
   // e4.setup();
   // ConstantChargeDischarge e5 = {5};
-  // e5.expParamters.disChargeRate = 0.2;
+  // e5.expParamters.currentRate = 0.2;
   // e5.setup();
   // ConstantChargeDischarge e6 = {1};
-  // e6.expParamters.disChargeRate = 0.2;
+  // e6.expParamters.currentRate = 0.2;
   // e6.setup();
   exps.exp[0] = &e1;
   // exps.exp[1] = &e2;
@@ -174,6 +176,9 @@ void setup()
   //debug_init();
   Serial.begin(115200);
   pinInit();
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
   while (!ads.begin())
   {
     Serial.println(F("ADS initialization failed."));

@@ -47,3 +47,7 @@
 #define DriveCycle 7
 
 #define N_CELL_CAPABLE 6
+
+
+//drive cycle
+#define DriveCycleBatchSize 20

@@ -14,6 +14,7 @@ public:
     struct CellMeasurement measurement;
     struct CellParameters parameters;
     struct ExperimentParameters expParamters;
+    struct ChamberMeasurement chmMeas;
     unsigned int driveCycleSampleIndicator = 0; // represent on which sample it is currently on
 
     ConstantChargeDischarge(unsigned char cell_id, unsigned char mode = 2)
@@ -27,7 +28,8 @@ public:
             0                   // avgtemperatue
         };
         parameters = {cell_id, 4.2, 3.0, 80, -20};
-        expParamters = {mode, 0, 0, 0, 0, 0, 0, 0, 0.1, 0, 20};
+        expParamters = {mode, 0, 0, 0, 0, 0, 0, 0.1, 0, 600};
+        chmMeas = {0,0};
     }
 
     void setup()
@@ -37,11 +39,11 @@ public:
         {
         case ConstantCurrentCharge:
             setCellChargeDischarge(parameters.cellId, relay_cell_charge);
-            // setChargerCurrent(cell_id,chargeRate);
+            // setChargerCurrent(cell_id,currentRate);
             break;
         case ConstantCurrentDischarge:
             setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
-            setDischargerCurrent(parameters.cellId, expParamters.disChargeRate);
+            setDischargerCurrent(parameters.cellId, expParamters.currentRate);
             expParamters.startTime = millis();
             takeApprActForDischFan(parameters.cellId, true, true);
             break;
@@ -112,7 +114,7 @@ public:
                 // Serial.println(F("Temperature limit crossed"));
                 status = 2;
             }
-            if (abs(abs(measurement.current) - abs(expParamters.chargeRate)) > expParamters.curToll)
+            if (abs(abs(measurement.current) - abs(expParamters.currentRate)) > expParamters.curToll)
             {
                 // Serial.println(F("Re-initialize ChargeDischarge"));
                 setup();
@@ -143,7 +145,7 @@ public:
                 // Serial.println(F("Temperature limit crossed"));
                 status = 2; // stopped
             }
-            if (abs(abs(measurement.current) - abs(expParamters.chargeRate)) > expParamters.curToll)
+            if (abs(abs(measurement.current) - abs(expParamters.currentRate)) > expParamters.curToll)
             {
                 // Serial.println(F("Re-initialize ChargeDischarge"));
                 setup();
@@ -158,7 +160,7 @@ public:
         case ConstantPowerDischarge:
             break;
         case DriveCycle:
-            status = perFormDriveCycle(parameters, measurement, expParamters);
+            status = perFormDriveCycle(parameters, measurement, expParamters, chmMeas);
             //some how calling the above functin is changing the object
             break;
         default:

@@ -10,6 +10,12 @@ struct CellMeasurement{
     float avgTemperature;
 };
 
+struct ChamberMeasurement
+{
+    float avgHum;
+    float avgTemp;
+};
+
 struct CellParameters{
     unsigned char cellId;
     float maxVoltage;
@@ -20,8 +26,7 @@ struct CellParameters{
 
 struct ExperimentParameters{
     unsigned char mode; // 1 - "ConstantCurrentCharge"| 2 - "ConstantCurrentDischarge"| 3 - "ConstantResistanceCharge"| 4 - "ConstantResistanceDischarge"|5 - "ConstantPowerCharge"| 6- "ConstantPowerDischarge";
-    float chargeRate;
-    float disChargeRate;
+    float currentRate;
     float resVal;
     float powVal;
     unsigned long timeLimit;
@@ -50,7 +55,7 @@ float getDischargerMosfetTemp(unsigned char discharger_id);
 void takeApprActForDischFan(unsigned char discharger_id, bool over_write = false, bool fan_status = false);
 float myMap(float x, float in_min, float in_max, float out_min, float out_max);
 float measureAvgCellTemp(unsigned char cell_id);
-unsigned char perFormDriveCycle(CellParameters &parameters,CellMeasurement &measurement,ExperimentParameters &expParms,int sampleTime=1000,unsigned long curTime = millis());
+unsigned char perFormDriveCycle(CellParameters &parameters,CellMeasurement &measurement,ExperimentParameters &expParms,ChamberMeasurement &chmMeas,int sampleTime=1000,unsigned long curTime = millis());
 void pinInit();
 void resetChannel(unsigned char channelId);
 void runExp();

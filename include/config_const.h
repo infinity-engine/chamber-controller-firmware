@@ -20,7 +20,7 @@ extern const float ntc_a = 283786.2, ntc_b = 0.06593, ntc_c = 49886.0;
 
 
 //DHT sensor
-extern const unsigned char no_of_dht_sensor_connected = 4;//Max 4
+extern const unsigned char no_of_dht_sensor_connected = 1;//Max 4
 
 // In fromat of s0,s1,s2,s3.
 //  s0 - LSB and s1 - MSB
