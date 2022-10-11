@@ -1,9 +1,12 @@
 #include <Arduino.h>
 #include <string.h>
+
 #ifndef CONFIG_ATMEGA
 #include "config_atmega.h"
 #endif
+
 #ifndef PROTOTYPE
+#define PROTOTYPE
 #include "functionPrototype.h"
 #endif
 

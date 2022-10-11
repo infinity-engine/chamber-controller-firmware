@@ -8,18 +8,22 @@
 #define PROTOTYPE
 #include "functionPrototype.h"
 #endif
+
 #ifndef CONFIG_ATMEGA
 #define CONFIG_ATMEGA
 #include "config_atmega.h"
 #endif
+
 #ifndef CONFIG_CONST
 #define CONFIG_CONST
 #include "config_const.h"
 #endif
+
 #ifndef CYCCHDIS
 #define CYCCHDIS
 #include "CyclicChargeDischarge.cpp"
 #endif
+
 #include <Adafruit_ADS1X15.h>
 #include <SPI.h>
 Adafruit_ADS1115 ads;
@@ -30,13 +34,40 @@ Adafruit_ADS1115 ads;
 #include "MCP_DAC.h"
 MCP4921 MCP[6] = {{}, {}, {}, {}, {}, {}}; // create 6 instances of MCP4921
 
+
 #include <SPI.h>
-#include <SD.h>
-File myFile;
+#include <SdFat.h>
+// 1 for FAT16/FAT32, 2 for exFAT, 3 for FAT16/FAT32 and exFAT.
+#define SD_FAT_TYPE 0
+#if SD_FAT_TYPE == 0
+SdFat sd;
+File dir;
+File file;
+#elif SD_FAT_TYPE == 1
+SdFat32 sd;
+File32 dir;
+File32 file;
+#elif SD_FAT_TYPE == 2
+SdExFat sd;
+ExFile dir;
+ExFile file;
+#elif SD_FAT_TYPE == 3
+SdFs sd;
+FsFile dir;
+FsFile file;
+#else  // SD_FAT_TYPE
+#error invalid SD_FAT_TYPE
+#endif  // SD_FAT_TYPE
+
 
 #ifndef MEMORY
 #define MEMORY
 #include <MemoryFree.h>
+#endif
+
+#ifndef READWRITEEXPAPI
+#define READWRITEEXPAPI
+#include "ReadWriteEXPAPI.cpp"
 #endif
 
 DHT dht[] = {{DHTPIN_1, DHTTYPE_1}, {DHTPIN_2, DHTTYPE_2}, {DHTPIN_3, DHTTYPE_3}, {DHTPIN_4, DHTTYPE_4}};
@@ -187,7 +218,7 @@ void setup()
     delay(1000);
   }
   Serial.println(F("ADS initialization success."));
-  while (!SD.begin(SD_card_module_cs))
+  while (!sd.begin(SD_card_module_cs))
   {
     Serial.println(F("SD initialization failed."));
     delay(1000);
@@ -200,22 +231,26 @@ void setup()
   {
     MCP[i].begin(chip_select_pin_location_discharger[i]);
   }
-  initExp();
-  test();
-  Serial.print(F("Available RAM "));
-  Serial.print(freeMemory());
-  Serial.println(F("Bytes"));
+  //initExp();
+  //test();
+  // Serial.print(F("Available RAM "));
+  // Serial.print(freeMemory());
+  // Serial.println(F("Bytes"));
+  ReadWriteExpAPI api;
+  ConstantChargeDischarge e1 = {1,7};
+  api.setUpNextSubExp(1,"BGH0485978",&e1);
+  api.fillNextDriveCyclePortion(1,"BGH0485978");
 }
 
 void loop()
 {
   // put your main code here, to run repeatedly:
   // unsigned long t = millis();
-  fillExp();
+  //fillExp();
   // Serial.print("Fill ");
   // Serial.println(millis()-t);
   // t = millis();
-  runExp();
+  //runExp();
   // Serial.print("Run ");
   // Serial.println(millis()-t);
   // unsigned long t1 = millis();

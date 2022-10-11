@@ -1,7 +1,9 @@
 #include <DHT.h>
+
 #ifndef CONFIG_ATMEGA
 #include "config_atmega.h"
 #endif
+
 struct CellMeasurement{
     unsigned char cellId;
     float current;
