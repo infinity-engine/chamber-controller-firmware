@@ -129,7 +129,7 @@ void runExp()
     {
       // get the details and do what you wanna do with it and update curExpStatus if required
       // potential sd card calls
-      exps.exp[i]->performAction(api);
+      exps.curExpStatus[i] = exps.exp[i]->performAction(api);
       Serial.print(exps.exp[i]->measurement.current);
       Serial.print(",Voltage:");
       Serial.print(exps.exp[i]->measurement.voltage);
