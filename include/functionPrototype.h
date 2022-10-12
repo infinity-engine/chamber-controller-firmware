@@ -36,7 +36,8 @@ struct ExperimentParameters{
     unsigned long prevTime;
     float curToll;//currentTollerence
     unsigned int sampleIndicator;//drive cycle sample indicator
-    unsigned int samples;
+    unsigned int total_n_samples;//total no. of samples in the drive cycle
+    float samples_batch[DriveCycleBatchSize];
 };
 
 void channelTheMux(bool address[]);
@@ -57,7 +58,6 @@ float getDischargerMosfetTemp(unsigned char discharger_id);
 void takeApprActForDischFan(unsigned char discharger_id, bool over_write = false, bool fan_status = false);
 float myMap(float x, float in_min, float in_max, float out_min, float out_max);
 float measureAvgCellTemp(unsigned char cell_id);
-unsigned char perFormDriveCycle(CellParameters &parameters,CellMeasurement &measurement,ExperimentParameters &expParms,ChamberMeasurement &chmMeas,int sampleTime=1000,unsigned long curTime = millis());
 void pinInit();
 void resetChannel(unsigned char channelId);
 void runExp();

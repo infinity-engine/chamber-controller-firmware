@@ -24,6 +24,11 @@
 #include "CyclicChargeDischarge.cpp"
 #endif
 
+#ifndef READWRITEEXPAPI
+#define READWRITEEXPAPI
+#include "ReadWriteEXPAPI.cpp"
+#endif
+
 #include <Adafruit_ADS1X15.h>
 #include <SPI.h>
 Adafruit_ADS1115 ads;
@@ -65,11 +70,6 @@ FsFile file;
 #include <MemoryFree.h>
 #endif
 
-#ifndef READWRITEEXPAPI
-#define READWRITEEXPAPI
-#include "ReadWriteEXPAPI.cpp"
-#endif
-
 DHT dht[] = {{DHTPIN_1, DHTTYPE_1}, {DHTPIN_2, DHTTYPE_2}, {DHTPIN_3, DHTTYPE_3}, {DHTPIN_4, DHTTYPE_4}};
 
 struct myStructure
@@ -82,6 +82,8 @@ struct myStructure
   unsigned int nthCurExp[N_CELL_CAPABLE];
 };
 struct myStructure exps;
+
+ReadWriteExpAPI api;
 
 void initExp()
 {
@@ -127,15 +129,16 @@ void runExp()
     {
       // get the details and do what you wanna do with it and update curExpStatus if required
       // potential sd card calls
-      Serial.print(exps.exp[0]->measurement.current);
+      exps.exp[i]->performAction(api);
+      Serial.print(exps.exp[i]->measurement.current);
       Serial.print(",Voltage:");
-      Serial.print(exps.exp[0]->measurement.voltage);
+      Serial.print(exps.exp[i]->measurement.voltage);
       Serial.print(",Cell Temp. 1(°C):");
-      Serial.print(exps.exp[0]->measurement.temperature[0]);
+      Serial.print(exps.exp[i]->measurement.temperature[0]);
       Serial.print(",Chamber Humidity(%):");
-      Serial.print(exps.exp[0]->chmMeas.avgHum);
+      Serial.print(exps.exp[i]->chmMeas.avgHum);
       Serial.print(",Chamber Temp.(°C):");
-      Serial.println(exps.exp[0]->chmMeas.avgTemp);
+      Serial.println(exps.exp[i]->chmMeas.avgTemp);
     }
     if (exps.curExpStatus[i] == 1)
     {
@@ -238,33 +241,13 @@ void setup()
   // Serial.println(F("Bytes"));
   ReadWriteExpAPI api;
   ConstantChargeDischarge e1 = {1,7};
-  api.setUpNextSubExp(1,"BGH0485978",&e1);
-  api.fillNextDriveCyclePortion(1,"BGH0485978");
+  api.setUpNextSubExp(1,"BGH0485978",e1.expParamters);
+
 }
 
 void loop()
 {
   // put your main code here, to run repeatedly:
-  // unsigned long t = millis();
   //fillExp();
-  // Serial.print("Fill ");
-  // Serial.println(millis()-t);
-  // t = millis();
   //runExp();
-  // Serial.print("Run ");
-  // Serial.println(millis()-t);
-  // unsigned long t1 = millis();
-  // myFile = SD.open("exp_12_1.txt",O_WRITE);
-  // if (myFile)
-  // {
-  //   myFile.println("145\\t3.2\\t1.0\\t25\\t25\\t25\\t25\\t24\\t25.5");
-  //   myFile.close();
-  // }
-  // else
-  // {
-  //   Serial.println("SD write failed");
-  // }
-  // Serial.println(millis() - t1);
-  // delay(1000);
-  //Serial.println(measureFromADS(0));
 }

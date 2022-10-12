@@ -37,3 +37,10 @@ Read more about using header files in official GCC documentation:
 * Computed Includes
 
 https://gcc.gnu.org/onlinedocs/cpp/Header-Files.html
+
+
+for struct on function definityion f(Struct &alis)
+on call f(struct alias)
+
+for class object function definition f(Class &alias)
+on call f(class object)

@@ -2,12 +2,18 @@
 #include <string.h>
 
 #ifndef CONFIG_ATMEGA
+#define CONFIG_ATMEGA
 #include "config_atmega.h"
 #endif
 
 #ifndef PROTOTYPE
 #define PROTOTYPE
 #include "functionPrototype.h"
+#endif
+
+#ifndef READWRITEEXPAPI
+#define READWRITEEXPAPI
+#include "ReadWriteEXPAPI.cpp"
 #endif
 
 class ConstantChargeDischarge
@@ -31,8 +37,8 @@ public:
             0                   // avgtemperatue
         };
         parameters = {cell_id, 4.2, 3.0, 80, -20};
-        expParamters = {mode, 0, 0, 0, 0, 0, 0, 0.1, 0, 600};
-        chmMeas = {0,0};
+        expParamters = {mode, 0, 0, 0, 0, 0, 0, 0.1, 0, DriveCycleBatchSize};
+        chmMeas = {0, 0};
     }
 
     void setup()
@@ -97,9 +103,8 @@ public:
         }
     }
 
-    unsigned char performAction()
+    unsigned char performAction(ReadWriteExpAPI &api)
     {
-        // memcpy(measurement.temperature,measureCellTemperature(parameters.cellId,measurement.temperature),sizeof(measurement.temperature));
         measureCellTemperature(parameters.cellId, measurement.temperature);
         measurement.voltage = measureCellVoltage(parameters.cellId);
         unsigned char status = 0;
@@ -163,8 +168,7 @@ public:
         case ConstantPowerDischarge:
             break;
         case DriveCycle:
-            status = perFormDriveCycle(parameters, measurement, expParamters, chmMeas);
-            //some how calling the above functin is changing the object
+            status = perFormDriveCycle(api);
             break;
         default:
             status = 0;
@@ -188,4 +192,33 @@ public:
         }
         return status;
     }
+
+    unsigned char perFormDriveCycle(ReadWriteExpAPI &api, int sampleTime = 1000, unsigned long curTime = millis())
+    {
+        unsigned status = 0; // 0 for not finsished, 1 for finished, 2 for stopped
+        if (curTime > expParamters.prevTime + sampleTime)
+        {
+            unsigned char indicator = (expParamters.sampleIndicator % DriveCycleBatchSize); // get the position on cureent batch
+            // Serial.println(indicator);
+            // Serial.println(samples_batch[indicator]);
+            setDischargerCurrent(1, expParamters.samples_batch[indicator]);
+            expParamters.sampleIndicator += 1;
+            // Serial.println(expParamters.sampleIndicator);
+            if (expParamters.sampleIndicator >= expParamters.total_n_samples)
+            {
+                status = 1; // completed
+            }
+            else if (indicator >= DriveCycleBatchSize)
+            {
+                // get the new set of samples
+                api.fillNextDriveCyclePortion(parameters.cellId, expParamters.samples_batch);
+            }
+            expParamters.prevTime = curTime;
+        }
+        measurement.current = getDischargerCurrent(parameters.cellId);
+        chmMeas.avgHum = measureChamberAverageHumidity();
+        chmMeas.avgTemp = measureChamberAverageTemperature();
+        return status;
+    }
+
 };

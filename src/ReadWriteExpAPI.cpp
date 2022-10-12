@@ -1,8 +1,11 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
+
 #ifndef CONFIG_ATMEGA
+#define CONFIG_ATMEGA
 #include "config_atmega.h"
 #endif
+
 #ifndef PROTOTYPE
 #define PROTOTYPE
 #include "functionPrototype.h"
@@ -14,9 +17,6 @@ extern SdFat sd;
 extern File dir;
 extern File file;
 
-#ifndef CYCCHDIS
-#include "CyclicChargeDischarge.cpp"
-#endif
 
 class ReadWriteExpAPI
 {
@@ -25,6 +25,7 @@ public:
     bool overallFinishedStatus[N_CELL_CAPABLE];
     unsigned char mode_curr_exp[N_CELL_CAPABLE];
     String expName[N_CELL_CAPABLE];
+    unsigned long driveCycleSampleIndicator[N_CELL_CAPABLE];
 
     ReadWriteExpAPI()
     {
@@ -33,9 +34,10 @@ public:
             currentSubExpNo[i] = 0;          // not on any sub exp
             overallFinishedStatus[i] = true; // no exp placed
             mode_curr_exp[i] = 0;            // not valid
+            driveCycleSampleIndicator[i] = 0;
         }
     }
-    void setUpNextSubExp(unsigned char cellId, const char *exp_no,ConstantChargeDischarge *exp)
+    void setUpNextSubExp(unsigned char cellId, const char *exp_no,ExperimentParameters &expParamters)
     {
         // get the experiment no from the network module to perfrom
         //  read the sd card for that particular file availability
@@ -84,11 +86,11 @@ public:
             float resVal = doc["resVal"];
             float powVal = doc["powVal"];
             unsigned long timeLimit = doc["timeLimit"];
-            exp->expParamters.mode = mode;
-            exp->expParamters.resVal = resVal;
-            exp->expParamters.powVal = powVal;
-            exp->expParamters.currentRate = currentRate;
-            exp->expParamters.timeLimit = timeLimit;
+            expParamters.mode = mode;
+            expParamters.resVal = resVal;
+            expParamters.powVal = powVal;
+            expParamters.currentRate = currentRate;
+            expParamters.timeLimit = timeLimit;
             mode_curr_exp[cellId] = mode;
         }
         else
@@ -103,7 +105,7 @@ public:
     //     return;
     // }
 
-    void fillNextDriveCyclePortion(unsigned char cellId,const char *exp_no)
+    void fillNextDriveCyclePortion(unsigned char cellId,float *drive_cycle,uint8_t n_samples=DriveCycleBatchSize)
     {
         cellId--;
         // read the next set of current for the drive cycle
@@ -113,17 +115,27 @@ public:
             // only valid for drive cycle exp.
             return;
         }
-        sd.chdir(exp_no);
+        sd.chdir(expName[cellId]);
         String end = "_drivecycle.csv";
         String config = currentSubExpNo[cellId] + end;
         //Serial.println(config);
         file = sd.open(config, FILE_READ);
         if (file)
         {
-            
-            while (file.available()){
-                //Serial.println(file.readStringUntil(',').toFloat());
+            if (file.seek(driveCycleSampleIndicator[cellId])){
+                unsigned char i=0;
+                for (;i<n_samples and file.available();i++){
+                    float data = file.readStringUntil(',').toFloat();
+                    Serial.println(data,4);
+                    drive_cycle[i] = data;
+                    //Serial.println(i);
+                }
+                for(;i<n_samples;i++){
+                    //clearing the previous value in case end
+                   drive_cycle[i] = 0; 
+                }
             }
+            driveCycleSampleIndicator[cellId] = file.position();//get the postion of next byte from where it to be read or write
         }else{
             Serial.println(F("Error opening the config file."));
         }
