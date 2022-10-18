@@ -77,6 +77,8 @@ unsigned char tem_sen_ads_location[6][6] =
         {adc2, adc2, adc3, adc3, adc3, adc3}  // cell 6
 };
 
+extern const uint8_t dis_cur_force[6] = {A12,A13,A14,A15,48,49};
+
 unsigned char vol_sen_ads_location[6] = {adc0, adc0, adc0, adc0, adc0, adc0}; // ADS Pins for cell voltage measurement
 unsigned char cur_sen_ads_location[6] = {adc0, adc0, adc0, adc0, adc0, adc0}; // ADS Pins for cell current measurement
 

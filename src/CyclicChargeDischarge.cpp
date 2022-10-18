@@ -24,7 +24,6 @@ public:
     struct CellParameters parameters;
     struct ExperimentParameters expParamters;
     struct ChamberMeasurement chmMeas;
-    unsigned int driveCycleSampleIndicator = 0; // represent on which sample it is currently on
 
     ConstantChargeDischarge(unsigned char cell_id, unsigned char mode = 2)
     {
@@ -97,6 +96,7 @@ public:
         case DriveCycle:
             setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
             setDischargerCurrent(parameters.cellId, 0);
+            setChargerCurrent(parameters.cellId,0);
             break;
         default:
             break;
@@ -198,27 +198,52 @@ public:
         unsigned status = 0; // 0 for not finsished, 1 for finished, 2 for stopped
         if (curTime > expParamters.prevTime + sampleTime)
         {
-            unsigned char indicator = (expParamters.sampleIndicator % DriveCycleBatchSize); // get the position on cureent batch
+            if (expParamters.sampleIndicator == 0)
+            {
+                // just for the first time
+                if (api.fillNextDriveCyclePortion(parameters.cellId, expParamters.samples_batch))
+                {
+                    expParamters.sampleIndicator += 1;
+                }
+                else
+                {
+                    // some error occur so stop
+                    status = 2;
+                    return status;
+                }
+            }
+            unsigned char indicator = ((expParamters.sampleIndicator - 1) % DriveCycleBatchSize); // get the position on cureent batch,array indicator [0 <-> (batchsize-1)]
             // Serial.println(indicator);
             // Serial.println(samples_batch[indicator]);
-            setDischargerCurrent(1, expParamters.samples_batch[indicator]);
+            float cur_A = expParamters.samples_batch[indicator];
+            if (cur_A >= 0){
+                setDischargerCurrent(parameters.cellId, cur_A);
+                measurement.current = getDischargerCurrent(parameters.cellId);
+            }else{
+                setChargerCurrent(parameters.cellId,cur_A);
+                measurement.current = getCurrentACS(parameters.cellId);
+            }
+            
             expParamters.sampleIndicator += 1;
             // Serial.println(expParamters.sampleIndicator);
-            if (expParamters.sampleIndicator >= expParamters.total_n_samples)
+            if (expParamters.sampleIndicator > expParamters.total_n_samples)
             {
                 status = 1; // completed
             }
             else if (indicator >= DriveCycleBatchSize)
             {
                 // get the new set of samples
-                api.fillNextDriveCyclePortion(parameters.cellId, expParamters.samples_batch);
+                if (!api.fillNextDriveCyclePortion(parameters.cellId, expParamters.samples_batch))
+                {
+                    // some error occur so stop
+                    status = 2;
+                    return status;
+                }
             }
             expParamters.prevTime = curTime;
         }
-        measurement.current = getDischargerCurrent(parameters.cellId);
         chmMeas.avgHum = measureChamberAverageHumidity();
         chmMeas.avgTemp = measureChamberAverageTemperature();
         return status;
     }
-
 };

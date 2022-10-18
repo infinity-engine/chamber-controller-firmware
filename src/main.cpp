@@ -39,7 +39,6 @@ Adafruit_ADS1115 ads;
 #include "MCP_DAC.h"
 MCP4921 MCP[6] = {{}, {}, {}, {}, {}, {}}; // create 6 instances of MCP4921
 
-
 #include <SPI.h>
 #include <SdFat.h>
 // 1 for FAT16/FAT32, 2 for exFAT, 3 for FAT16/FAT32 and exFAT.
@@ -60,10 +59,9 @@ ExFile file;
 SdFs sd;
 FsFile dir;
 FsFile file;
-#else  // SD_FAT_TYPE
+#else // SD_FAT_TYPE
 #error invalid SD_FAT_TYPE
-#endif  // SD_FAT_TYPE
-
+#endif // SD_FAT_TYPE
 
 #ifndef MEMORY
 #define MEMORY
@@ -74,12 +72,12 @@ DHT dht[] = {{DHTPIN_1, DHTTYPE_1}, {DHTPIN_2, DHTTYPE_2}, {DHTPIN_3, DHTTYPE_3}
 
 struct myStructure
 {
-  ConstantChargeDischarge *exp[N_CELL_CAPABLE];
-  unsigned char curExpStatus[N_CELL_CAPABLE]; // corresponds to each cell configured
-  bool isFreeForNewExps[N_CELL_CAPABLE];      // corresponds to each cell configured, also point to last setof exps
+  ConstantChargeDischarge *exp[N_CELL_CAPABLE]; // store the object for any sub experiment per channel
+  unsigned char curExpStatus[N_CELL_CAPABLE];   // corresponds to each cell configured
+  bool isFreeForNewExps[N_CELL_CAPABLE];        // corresponds to each cell configured, also point to last setof exps
   bool isLastExp[N_CELL_CAPABLE];
-  unsigned int noOfSubExps[N_CELL_CAPABLE];
-  unsigned int nthCurExp[N_CELL_CAPABLE];
+  unsigned int noOfSubExps[N_CELL_CAPABLE]; // total no of sub-exp to be run for this particular channel
+  unsigned int nthCurExp[N_CELL_CAPABLE];   // points to what no of experiment the current channel is running
 };
 struct myStructure exps;
 
@@ -87,18 +85,18 @@ ReadWriteExpAPI api;
 
 void initExp()
 {
+  // open all the channel for set of experiments
   exps = {
-      {NULL, NULL, NULL, NULL, NULL, NULL},//exp
-      {0, 0, 0, 0, 0, 0},//cur exp status
-      {true, true, true, true, true, true},//is free for new exps
-      {true, true, true, true, true, true},//is last exp
-      {0, 0, 0, 0, 0, 0},//no of sub exps
-      {0, 0, 0, 0, 0, 0}};//nth cur exp
+      {NULL, NULL, NULL, NULL, NULL, NULL}, // exp
+      {0, 0, 0, 0, 0, 0},                   // cur exp status
+      {true, true, true, true, true, true}, // is free for new exps
+      {true, true, true, true, true, true}, // is last exp
+      {0, 0, 0, 0, 0, 0},                   // no of sub exps
+      {0, 0, 0, 0, 0, 0}};                  // nth cur exp
 }
 
 void fillExp()
 {
-  
   for (unsigned char i = 0; i < N_CELL_CAPABLE; i++)
   {
     if (exps.isFreeForNewExps[i])
@@ -111,7 +109,7 @@ void fillExp()
       // potential new api call
       exps.curExpStatus[i] = 0;
       exps.isFreeForNewExps[i] = false;
-      exps.nthCurExp[i] = 1;//denotes the nth sub experiment on the current set of experiments
+      exps.nthCurExp[i] = 1; // denotes the nth sub experiment on the current set of experiments
       if (exps.nthCurExp[i] == exps.noOfSubExps[i])
       {
         exps.isLastExp[i] = true;
@@ -122,7 +120,7 @@ void fillExp()
 
 void runExp()
 {
-  // each cell takes around 135 ms time while discharging
+  // time for each channel takes around 135ms while discharging-experiment
   for (unsigned char i = 0; i < N_CELL_CAPABLE; i++)
   {
     if (exps.exp[i] != NULL && exps.curExpStatus[i] == 0 && exps.isFreeForNewExps[i] == false)
@@ -142,29 +140,44 @@ void runExp()
     }
     if (exps.curExpStatus[i] == 1)
     {
-      // if the current experiment is in finished status
+      // if the current sub-experiment is in finished status
       Serial.println(F("Sub exp. is finished."));
       // check whther it was the last experiment among all the set of experiment for the particular cell to run
       if (exps.isLastExp[i])
       {
+        // all set of sub exps for the particular channel has finished.
         // add some finishing touches
         Serial.println(F("All sub-exps are finished."));
+        api.overallFinishedStatus[i] = true;
       }
       else
       {
-        // potential new sd card read, fetch the sub experiment, and run it
+        // potential new sd card read, fetch the sub experiment, and creates it's object
+        // then place it on the exps
         exps.nthCurExp[i] += 1; // increment the sub exp count
         if (exps.nthCurExp[i] == exps.noOfSubExps[i])
         {
           exps.isLastExp[i] = true;
         }
+        unsigned char cellId = i + 1;
+        ConstantChargeDischarge e = {cellId}; // create a new instance of sub exp
+        exps.exp[0] = &e;
+        if (api.setUpNextSubExp(cellId, exps.exp[i]->expParamters))
+        {
+          // update the exp from reading the sd card
+          e.setup();
+        }
+        else
+        {
+          // stop the channel
+          exps.curExpStatus[i] = 2;
+          Serial.println(F("Stopped"));
+        }
       }
-      resetChannel(i);
     }
     else if (exps.curExpStatus[i] == 2)
     {
       // if any sub exp has stopped.
-      Serial.println("Stopped");
     }
   }
 }
@@ -179,7 +192,7 @@ void resetChannel(unsigned char channelId)
 
 void test()
 {
-  ConstantChargeDischarge e1 = {1,7};
+  ConstantChargeDischarge e1 = {1, 7};
   e1.expParamters.currentRate = 0;
   e1.setup();
   // ConstantChargeDischarge e2 = {2};
@@ -207,10 +220,11 @@ void test()
 
 void setup()
 {
-  //debug_init();
+  // debug_init();
   Serial.begin(115200);
   pinInit();
-  while (!Serial) {
+  while (!Serial)
+  {
     ; // wait for serial port to connect. Needed for native USB port only
   }
   while (!ads.begin())
@@ -234,20 +248,20 @@ void setup()
   {
     MCP[i].begin(chip_select_pin_location_discharger[i]);
   }
-  //initExp();
-  //test();
-  // Serial.print(F("Available RAM "));
-  // Serial.print(freeMemory());
-  // Serial.println(F("Bytes"));
+  // initExp();
+  // test();
+  //  Serial.print(F("Available RAM "));
+  //  Serial.print(freeMemory());
+  //  Serial.println(F("Bytes"));
   ReadWriteExpAPI api;
-  ConstantChargeDischarge e1 = {1,7};
-  api.setUpNextSubExp(1,"BGH0485978",e1.expParamters);
-
+  ConstantChargeDischarge e1 = {1, 7};
+  api.expName[0] = "BGH0485978";
+  api.setUpNextSubExp(1, e1.expParamters);
 }
 
 void loop()
 {
   // put your main code here, to run repeatedly:
-  //fillExp();
-  //runExp();
+  // fillExp();
+  // runExp();
 }

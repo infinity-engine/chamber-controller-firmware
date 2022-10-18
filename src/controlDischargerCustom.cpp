@@ -110,6 +110,15 @@ void takeApprActForDischFan(unsigned char discharger_id, bool over_write, bool f
     }
 }
 
+void setChargerCurrent(unsigned char discharger_id, float set_current)
+{
+    // charger id 1,2,3,4,5,6
+}
+float getCurrentACS(unsigned char discharger_id)
+{
+    //current measurement using acs sensor
+    return 0;
+}
 float myMap(float x, float in_min, float in_max, float out_min, float out_max)
 {
     // maps input from one range to different range

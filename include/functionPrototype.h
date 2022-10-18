@@ -35,7 +35,7 @@ struct ExperimentParameters{
     unsigned long startTime;
     unsigned long prevTime;
     float curToll;//currentTollerence
-    unsigned int sampleIndicator;//drive cycle sample indicator
+    unsigned int sampleIndicator;//drive cycle sample indicator 0 for no point, point among [1-total_n_samples]
     unsigned int total_n_samples;//total no. of samples in the drive cycle
     float samples_batch[DriveCycleBatchSize];
 };
@@ -56,6 +56,8 @@ void setDischargerCurrent(unsigned char discharger_id, float set_current);
 float getDischargerCurrent(unsigned char discharger_id);
 float getDischargerMosfetTemp(unsigned char discharger_id);
 void takeApprActForDischFan(unsigned char discharger_id, bool over_write = false, bool fan_status = false);
+void setChargerCurrent(unsigned char discharger_id, float set_current);
+float getCurrentACS(unsigned char discharger_id);
 float myMap(float x, float in_min, float in_max, float out_min, float out_max);
 float measureAvgCellTemp(unsigned char cell_id);
 void pinInit();

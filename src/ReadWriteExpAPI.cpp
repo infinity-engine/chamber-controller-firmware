@@ -25,7 +25,7 @@ public:
     bool overallFinishedStatus[N_CELL_CAPABLE];
     unsigned char mode_curr_exp[N_CELL_CAPABLE];
     String expName[N_CELL_CAPABLE];
-    unsigned long driveCycleSampleIndicator[N_CELL_CAPABLE];
+    unsigned long driveCycleSampleIndicator[N_CELL_CAPABLE];//file pointer in terms of no of character
 
     ReadWriteExpAPI()
     {
@@ -37,16 +37,16 @@ public:
             driveCycleSampleIndicator[i] = 0;
         }
     }
-    void setUpNextSubExp(unsigned char cellId, const char *exp_no,ExperimentParameters &expParamters)
+    bool setUpNextSubExp(unsigned char cellId,ExperimentParameters &expParamters)
     {
         // get the experiment no from the network module to perfrom
         //  read the sd card for that particular file availability
         // store the expno in the property
         cellId--;
         StaticJsonDocument<200> doc;
-        if (sd.exists(exp_no))
+        if (sd.exists(expName[cellId]))
         {
-            Serial.print(exp_no);
+            Serial.print(expName[cellId]);
             Serial.println(F(" -> config exists."));
             if ((currentSubExpNo[cellId] == 0 and overallFinishedStatus[cellId]) or (currentSubExpNo[cellId] > 0 and overallFinishedStatus[cellId] == false))
             {
@@ -57,16 +57,16 @@ public:
             else
             {
                 Serial.println(F("No new sub experiment"));
-                return;
+                return false;
             }
         }
         else
         {
-            Serial.print(exp_no);
+            Serial.print(expName[cellId]);
             Serial.println(F(" -> config does not exist."));
-            return;
+            return false;
         }
-        sd.chdir(exp_no);
+        sd.chdir(expName[cellId]);
         String end = "_config.json";
         String config = currentSubExpNo[cellId] + end;
         // Serial.println(config);
@@ -79,7 +79,7 @@ public:
                 Serial.print(F("deserializeJson() failed: "));
                 Serial.println(error.f_str());
                 file.close();
-                return;
+                return false;
             }
             unsigned char mode = doc["mode"];
             float currentRate = doc["currentRate"];
@@ -96,16 +96,17 @@ public:
         else
         {
             Serial.println(F("Error opening the config file."));
+            return false;
         }
         file.close();
-        return;
+        return true;
     }
 
     // ExperimentParameters getNextSubExpParameter(unsigned  char channel_id){
     //     return;
     // }
 
-    void fillNextDriveCyclePortion(unsigned char cellId,float *drive_cycle,uint8_t n_samples=DriveCycleBatchSize)
+    bool fillNextDriveCyclePortion(unsigned char cellId,float *drive_cycle,uint8_t n_samples=DriveCycleBatchSize)
     {
         cellId--;
         // read the next set of current for the drive cycle
@@ -113,7 +114,7 @@ public:
         if (mode_curr_exp[cellId] != DriveCycle)
         {
             // only valid for drive cycle exp.
-            return;
+            return false;
         }
         sd.chdir(expName[cellId]);
         String end = "_drivecycle.csv";
@@ -123,23 +124,24 @@ public:
         if (file)
         {
             if (file.seek(driveCycleSampleIndicator[cellId])){
-                unsigned char i=0;
-                for (;i<n_samples and file.available();i++){
+                for(unsigned char i=0;i<n_samples;i++){
+                    //clearing the previous value in case end
+                   drive_cycle[i] = 0; 
+                }
+                for (unsigned char i=0;i<n_samples and file.available();i++){
                     float data = file.readStringUntil(',').toFloat();
                     Serial.println(data,4);
                     drive_cycle[i] = data;
                     //Serial.println(i);
                 }
-                for(;i<n_samples;i++){
-                    //clearing the previous value in case end
-                   drive_cycle[i] = 0; 
-                }
             }
             driveCycleSampleIndicator[cellId] = file.position();//get the postion of next byte from where it to be read or write
         }else{
             Serial.println(F("Error opening the config file."));
+            file.close();
+            return false;
         }
-        Serial.println("Done");
         file.close();
+        return true;
     }
 };
