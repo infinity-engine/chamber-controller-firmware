@@ -68,6 +68,75 @@ FsFile file;
 #include <MemoryFree.h>
 #endif
 
+//LCD address 0X27
+#ifndef LCD
+#define LCD
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27,20,4);
+#endif
+byte zero[] = {
+  B00000,
+  B00000,
+  B00000,
+  B00000,
+  B00000,
+  B00000,
+  B00000,
+  B00000
+};
+byte one[] = {
+  B10000,
+  B10000,
+  B10000,
+  B10000,
+  B10000,
+  B10000,
+  B10000,
+  B10000
+};
+byte two[] = {
+  B11000,
+  B11000,
+  B11000,
+  B11000,
+  B11000,
+  B11000,
+  B11000,
+  B11000
+};
+byte three[] = {
+  B11100,
+  B11100,
+  B11100,
+  B11100,
+  B11100,
+  B11100,
+  B11100,
+  B11100
+};
+byte four[] = {
+  B11110,
+  B11110,
+  B11110,
+  B11110,
+  B11110,
+  B11110,
+  B11110,
+  B11110
+};
+byte five[] = {
+  B11111,
+  B11111,
+  B11111,
+  B11111,
+  B11111,
+  B11111,
+  B11111,
+  B11111
+};
+
+
 DHT dht[] = {{DHTPIN_1, DHTTYPE_1}, {DHTPIN_2, DHTTYPE_2}, {DHTPIN_3, DHTTYPE_3}, {DHTPIN_4, DHTTYPE_4}};
 
 struct myStructure
@@ -217,7 +286,32 @@ void test()
   // exps.exp[4] = &e5;
   // exps.exp[5] = &e6;
 }
-
+void lcd_init(){
+  lcd.init();//initialise the lcd
+  lcd.createChar(0, zero);
+  lcd.createChar(1, one);
+  lcd.createChar(2, two);
+  lcd.createChar(3, three);
+  lcd.createChar(4, four);
+  lcd.createChar(5, five);
+  lcd.backlight();//turn on backlight
+  lcd.clear();
+  lcd.setCursor(0,0);//column,row
+  lcd.print(F("Battery Test Chamber"));
+  delay(100);
+  lcd.setCursor(0,2);
+  lcd.print(F("Starting Engine"));
+  for(uint8_t i = 0;i<80;i++){
+    updateProgressBar(i,80,3);
+    delay(1);
+  }
+  delay(1000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(F("Battery Test Chamber"));
+  lcd.setCursor(0,2);
+  lcd.print(F("Ready!"));
+}
 void setup()
 {
   // debug_init();
@@ -227,6 +321,7 @@ void setup()
   {
     ; // wait for serial port to connect. Needed for native USB port only
   }
+ lcd_init();
   while (!ads.begin())
   {
     Serial.println(F("ADS initialization failed."));

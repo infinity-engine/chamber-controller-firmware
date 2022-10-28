@@ -65,3 +65,4 @@ void resetChannel(unsigned char channelId);
 void runExp();
 void fillExp();
 void initExp();
+void updateProgressBar(unsigned long count, unsigned long totalCount, int lineToPrintOn);
