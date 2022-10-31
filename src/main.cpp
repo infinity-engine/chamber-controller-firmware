@@ -68,81 +68,74 @@ FsFile file;
 #include <MemoryFree.h>
 #endif
 
-//LCD address 0X27
+// LCD address 0X27
 #ifndef LCD
 #define LCD
-#include <Wire.h> 
+#include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-LiquidCrystal_I2C lcd(0x27,20,4);
+LiquidCrystal_I2C lcd(0x27, 20, 4);
 #endif
 byte zero[] = {
-  B00000,
-  B00000,
-  B00000,
-  B00000,
-  B00000,
-  B00000,
-  B00000,
-  B00000
-};
+    B00000,
+    B00000,
+    B00000,
+    B00000,
+    B00000,
+    B00000,
+    B00000,
+    B00000};
 byte one[] = {
-  B10000,
-  B10000,
-  B10000,
-  B10000,
-  B10000,
-  B10000,
-  B10000,
-  B10000
-};
+    B10000,
+    B10000,
+    B10000,
+    B10000,
+    B10000,
+    B10000,
+    B10000,
+    B10000};
 byte two[] = {
-  B11000,
-  B11000,
-  B11000,
-  B11000,
-  B11000,
-  B11000,
-  B11000,
-  B11000
-};
+    B11000,
+    B11000,
+    B11000,
+    B11000,
+    B11000,
+    B11000,
+    B11000,
+    B11000};
 byte three[] = {
-  B11100,
-  B11100,
-  B11100,
-  B11100,
-  B11100,
-  B11100,
-  B11100,
-  B11100
-};
+    B11100,
+    B11100,
+    B11100,
+    B11100,
+    B11100,
+    B11100,
+    B11100,
+    B11100};
 byte four[] = {
-  B11110,
-  B11110,
-  B11110,
-  B11110,
-  B11110,
-  B11110,
-  B11110,
-  B11110
-};
+    B11110,
+    B11110,
+    B11110,
+    B11110,
+    B11110,
+    B11110,
+    B11110,
+    B11110};
 byte five[] = {
-  B11111,
-  B11111,
-  B11111,
-  B11111,
-  B11111,
-  B11111,
-  B11111,
-  B11111
-};
-
+    B11111,
+    B11111,
+    B11111,
+    B11111,
+    B11111,
+    B11111,
+    B11111,
+    B11111};
 
 DHT dht[] = {{DHTPIN_1, DHTTYPE_1}, {DHTPIN_2, DHTTYPE_2}, {DHTPIN_3, DHTTYPE_3}, {DHTPIN_4, DHTTYPE_4}};
 
 struct myStructure
 {
   ConstantChargeDischarge *exp[N_CELL_CAPABLE]; // store the object for any sub experiment per channel
-  unsigned char curExpStatus[N_CELL_CAPABLE];   // corresponds to each cell configured
+  unsigned char curExpStatus[N_CELL_CAPABLE];   // corresponds to each cell configured; -> sub-exp
   bool isFreeForNewExps[N_CELL_CAPABLE];        // corresponds to each cell configured, also point to last setof exps
   bool isLastExp[N_CELL_CAPABLE];
   unsigned int noOfSubExps[N_CELL_CAPABLE]; // total no of sub-exp to be run for this particular channel
@@ -152,9 +145,12 @@ struct myStructure exps;
 
 ReadWriteExpAPI api;
 
+/**
+ * @brief open all the channel for set of experiments
+ *
+ */
 void initExp()
 {
-  // open all the channel for set of experiments
   exps = {
       {NULL, NULL, NULL, NULL, NULL, NULL}, // exp
       {0, 0, 0, 0, 0, 0},                   // cur exp status
@@ -164,29 +160,74 @@ void initExp()
       {0, 0, 0, 0, 0, 0}};                  // nth cur exp
 }
 
+/**
+ * @brief get new set of sub experiment from an api call store them in sd card;
+ * create a new instance of the first sub exp;
+ * store the exp name in the readwrite api
+ * exps.exp[i] = instance;
+ * set noOfSubExps;
+ * Also, start the first sub experiment of each series.
+ * potential new api call;
+ */
 void fillExp()
 {
   for (unsigned char i = 0; i < N_CELL_CAPABLE; i++)
   {
     if (exps.isFreeForNewExps[i])
     {
-      // get new set of sub experiment from an api call store them in sd card
-      // create a new instance of the first sub exp
-      // start the exp
-      // exps.exp[i] = instance;
-      // set noOfSubExps
-      // potential new api call
-      exps.curExpStatus[i] = 0;
-      exps.isFreeForNewExps[i] = false;
-      exps.nthCurExp[i] = 1; // denotes the nth sub experiment on the current set of experiments
-      if (exps.nthCurExp[i] == exps.noOfSubExps[i])
+      if (false)
       {
-        exps.isLastExp[i] = true;
+        resetChannel(i + 1);
+        // get the exp name and no of sub exp and channel id to place the experiment
+        // assuming those experiment details are already written in the sd card
+        // let say from esp you get the new experiment name to be XXXXXXX
+        // so you place the exp name on the api
+
+        // api.resetAPIChannel(i+1,"XXXXXXX");
+        // exps.noOfSubExps[i] = set it
+
+        reserveChannel(i + 1);
+        // making the sub-exp ->0 and status 1, so that this will be catched by
+        //  runExp condition "if (exps.curExpStatus[i] == 1)"
+        //  rest of the taken care of by that, like updating the exp parameters and all
+        exps.nthCurExp[i] = 0;
+        exps.curExpStatus[i] = 1;
       }
     }
   }
 }
 
+/**
+ * @brief reserve the channel so that no new set of experiment can not be placed on it
+ * used when placing new set of experiment on it
+ * @param channelId 1-Max channel allowed
+ */
+void reserveChannel(unsigned char channelId)
+{
+  channelId--;
+  exps.curExpStatus[channelId] = 0;
+  exps.isFreeForNewExps[channelId] = false;
+}
+
+/**
+ * @brief reset the channel so that it becomes free to place new experiment.
+ * If somehow the experiment is stopped in between you have to reset it before you can place new experiment on it.
+ * @param channelId 1-max channel allowed
+ */
+void resetChannel(unsigned char channelId)
+{
+  channelId--;
+  exps.isFreeForNewExps[channelId] = true; // on setting it true, fillExp will then fetch for new available exp
+  exps.curExpStatus[channelId] = 0;
+  exps.exp[channelId] = NULL;
+  exps.isLastExp[channelId] = true;
+}
+
+/**
+ * @brief Run the particular sub experiment for each channel
+ * if the sub experiment is completed then call readwrite api and place the new sub experiment and run it.
+ *
+ */
 void runExp()
 {
   // time for each channel takes around 135ms while discharging-experiment
@@ -194,6 +235,7 @@ void runExp()
   {
     if (exps.exp[i] != NULL && exps.curExpStatus[i] == 0 && exps.isFreeForNewExps[i] == false)
     {
+      // there is an sub-exp placed, which is running, and the channel is occupied
       // get the details and do what you wanna do with it and update curExpStatus if required
       // potential sd card calls
       exps.curExpStatus[i] = exps.exp[i]->performAction(api);
@@ -207,17 +249,22 @@ void runExp()
       Serial.print(",Chamber Temp.(°C):");
       Serial.println(exps.exp[i]->chmMeas.avgTemp);
     }
+    
+    // this step will be triggered on completion of previous sub exp as well as on the starting of new set of exp
     if (exps.curExpStatus[i] == 1)
     {
       // if the current sub-experiment is in finished status
-      Serial.println(F("Sub exp. is finished."));
+      if (exps.nthCurExp > 0)
+      {
+        Serial.println(F("Sub exp. is finished."));
+      }
       // check whther it was the last experiment among all the set of experiment for the particular cell to run
-      if (exps.isLastExp[i])
+      if (exps.isLastExp[i] and exps.nthCurExp > 0)
       {
         // all set of sub exps for the particular channel has finished.
         // add some finishing touches
         Serial.println(F("All sub-exps are finished."));
-        api.overallFinishedStatus[i] = true;
+        api.resetAPIChannel(i + 1);
       }
       else
       {
@@ -233,7 +280,7 @@ void runExp()
         exps.exp[0] = &e;
         if (api.setUpNextSubExp(cellId, exps.exp[i]->expParamters))
         {
-          // update the exp from reading the sd card
+          // update the exp from the data received and already placed on object property.
           e.setup();
         }
         else
@@ -251,19 +298,11 @@ void runExp()
   }
 }
 
-void resetChannel(unsigned char channelId)
-{
-  // if somehow the experiment is stopped in between you have to reset it before you can place new experiment on it.
-  exps.isFreeForNewExps[channelId] = true; // on setting it true, fillExp will then fetch for new available exp
-  exps.curExpStatus[channelId] = 0;
-  exps.exp[channelId] = NULL;
-}
-
 void test()
 {
-  ConstantChargeDischarge e1 = {1, 7};
-  e1.expParamters.currentRate = 0;
-  e1.setup();
+  // ConstantChargeDischarge e1 = {1, 7};
+  // e1.expParamters.currentRate = 0;
+  // e1.setup();
   // ConstantChargeDischarge e2 = {2};
   // e2.expParamters.currentRate = 0.2;
   // e2.setup();
@@ -279,39 +318,48 @@ void test()
   // ConstantChargeDischarge e6 = {1};
   // e6.expParamters.currentRate = 0.2;
   // e6.setup();
-  exps.exp[0] = &e1;
+  // exps.exp[0] = &e1;
   // exps.exp[1] = &e2;
   // exps.exp[2] = &e3;
   // exps.exp[3] = &e4;
   // exps.exp[4] = &e5;
   // exps.exp[5] = &e6;
+  resetChannel(1);
+  api.resetAPIChannel(1, "BGH0485978");
+  exps.noOfSubExps[0] = 2;
+  exps.nthCurExp[0] = 0;
+  exps.curExpStatus[0] = 1;
 }
-void lcd_init(){
-  lcd.init();//initialise the lcd
+
+void lcd_init()
+{
+  lcd.init(); // initialise the lcd
   lcd.createChar(0, zero);
   lcd.createChar(1, one);
   lcd.createChar(2, two);
   lcd.createChar(3, three);
   lcd.createChar(4, four);
   lcd.createChar(5, five);
-  lcd.backlight();//turn on backlight
+  lcd.backlight(); // turn on backlight
   lcd.clear();
-  lcd.setCursor(0,0);//column,row
+  lcd.setCursor(0, 0); // column,row
   lcd.print(F("Battery Test Chamber"));
   delay(100);
-  lcd.setCursor(0,2);
+  lcd.setCursor(0, 2);
   lcd.print(F("Starting Engine"));
-  for(uint8_t i = 0;i<80;i++){
-    updateProgressBar(i,80,3);
+  for (uint8_t i = 0; i < 80; i++)
+  {
+    updateProgressBar(i, 80, 3);
     delay(1);
   }
   delay(1000);
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print(F("Battery Test Chamber"));
-  lcd.setCursor(0,2);
+  lcd.setCursor(0, 2);
   lcd.print(F("Ready!"));
 }
+
 void setup()
 {
   // debug_init();
@@ -321,7 +369,7 @@ void setup()
   {
     ; // wait for serial port to connect. Needed for native USB port only
   }
- lcd_init();
+  lcd_init();
   while (!ads.begin())
   {
     Serial.println(F("ADS initialization failed."));
@@ -343,20 +391,16 @@ void setup()
   {
     MCP[i].begin(chip_select_pin_location_discharger[i]);
   }
-  // initExp();
-  // test();
+  initExp();
+  test();
   //  Serial.print(F("Available RAM "));
   //  Serial.print(freeMemory());
   //  Serial.println(F("Bytes"));
-  ReadWriteExpAPI api;
-  ConstantChargeDischarge e1 = {1, 7};
-  api.expName[0] = "BGH0485978";
-  api.setUpNextSubExp(1, e1.expParamters);
 }
 
 void loop()
 {
   // put your main code here, to run repeatedly:
-  // fillExp();
-  // runExp();
+  fillExp();
+  runExp();
 }

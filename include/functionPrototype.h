@@ -62,6 +62,7 @@ float myMap(float x, float in_min, float in_max, float out_min, float out_max);
 float measureAvgCellTemp(unsigned char cell_id);
 void pinInit();
 void resetChannel(unsigned char channelId);
+void reserveChannel(unsigned char channelId);
 void runExp();
 void fillExp();
 void initExp();

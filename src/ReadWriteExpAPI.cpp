@@ -17,48 +17,60 @@ extern SdFat sd;
 extern File dir;
 extern File file;
 
-
 class ReadWriteExpAPI
 {
-public:
+private:
     unsigned char currentSubExpNo[N_CELL_CAPABLE];
-    bool overallFinishedStatus[N_CELL_CAPABLE];
     unsigned char mode_curr_exp[N_CELL_CAPABLE];
     String expName[N_CELL_CAPABLE];
-    unsigned long driveCycleSampleIndicator[N_CELL_CAPABLE];//file pointer in terms of no of character
 
+    unsigned long driveCycleSampleIndicator[N_CELL_CAPABLE];
+    // file pointer in terms of no of character
+    // ignore if your experiment isn't a drive cycle or series of current
+public:
+    /**
+     * @brief Construct a new Read Write Exp A P I object
+     *
+     */
     ReadWriteExpAPI()
     {
         for (unsigned char i = 0; i < N_CELL_CAPABLE; i++)
         {
-            currentSubExpNo[i] = 0;          // not on any sub exp
-            overallFinishedStatus[i] = true; // no exp placed
-            mode_curr_exp[i] = 0;            // not valid
-            driveCycleSampleIndicator[i] = 0;
+            resetAPIChannel(i);
         }
     }
-    bool setUpNextSubExp(unsigned char cellId,ExperimentParameters &expParamters)
+
+    void resetAPIChannel(unsigned char cellId, String exp_name = "")
     {
-        // get the experiment no from the network module to perfrom
-        //  read the sd card for that particular file availability
-        // store the expno in the property
         cellId--;
+        currentSubExpNo[cellId] = 0;
+        mode_curr_exp[cellId] = 0;
+        driveCycleSampleIndicator[cellId] = 0;
+        expName[cellId] = exp_name;
+    }
+
+    /**
+     * @brief with the current experiment name. availabe on the object property
+     * read through the sd card and fill the given expParams with approprite experiment setup
+     * @param cellId nth cell 1-Max_cell_capable
+     * @param expParamters parameters for the sub experiments
+     * @return true on successful new sub exp placing
+     * @return false otherwise
+     */
+    bool setUpNextSubExp(unsigned char cellId, ExperimentParameters &expParamters)
+    {
+        cellId--;
+        if (expName[cellId].length() == 0)
+        {
+            Serial.println(F("Exp name not configured"));
+            return false;
+        }
         StaticJsonDocument<200> doc;
         if (sd.exists(expName[cellId]))
         {
             Serial.print(expName[cellId]);
             Serial.println(F(" -> config exists."));
-            if ((currentSubExpNo[cellId] == 0 and overallFinishedStatus[cellId]) or (currentSubExpNo[cellId] > 0 and overallFinishedStatus[cellId] == false))
-            {
-                // start the first experiment
-                currentSubExpNo[cellId]++;
-                overallFinishedStatus[cellId] = false;
-            }
-            else
-            {
-                Serial.println(F("No new sub experiment"));
-                return false;
-            }
+            currentSubExpNo[cellId]++;
         }
         else
         {
@@ -95,18 +107,14 @@ public:
         }
         else
         {
-            Serial.println(F("Error opening the config file."));
+            Serial.println(F("Couldn't find the Sub-Exp."));
             return false;
         }
         file.close();
         return true;
     }
 
-    // ExperimentParameters getNextSubExpParameter(unsigned  char channel_id){
-    //     return;
-    // }
-
-    bool fillNextDriveCyclePortion(unsigned char cellId,float *drive_cycle,uint8_t n_samples=DriveCycleBatchSize)
+    bool fillNextDriveCyclePortion(unsigned char cellId, float *drive_cycle, uint8_t n_samples = DriveCycleBatchSize)
     {
         cellId--;
         // read the next set of current for the drive cycle
@@ -119,24 +127,29 @@ public:
         sd.chdir(expName[cellId]);
         String end = "_drivecycle.csv";
         String config = currentSubExpNo[cellId] + end;
-        //Serial.println(config);
+        // Serial.println(config);
         file = sd.open(config, FILE_READ);
         if (file)
         {
-            if (file.seek(driveCycleSampleIndicator[cellId])){
-                for(unsigned char i=0;i<n_samples;i++){
-                    //clearing the previous value in case end
-                   drive_cycle[i] = 0; 
+            if (file.seek(driveCycleSampleIndicator[cellId]))
+            {
+                for (unsigned char i = 0; i < n_samples; i++)
+                {
+                    // clearing the previous value in case end
+                    drive_cycle[i] = 0;
                 }
-                for (unsigned char i=0;i<n_samples and file.available();i++){
+                for (unsigned char i = 0; i < n_samples and file.available(); i++)
+                {
                     float data = file.readStringUntil(',').toFloat();
-                    Serial.println(data,4);
+                    Serial.println(data, 4);
                     drive_cycle[i] = data;
-                    //Serial.println(i);
+                    // Serial.println(i);
                 }
             }
-            driveCycleSampleIndicator[cellId] = file.position();//get the postion of next byte from where it to be read or write
-        }else{
+            driveCycleSampleIndicator[cellId] = file.position(); // get the postion of next byte from where it to be read or write
+        }
+        else
+        {
             Serial.println(F("Error opening the config file."));
             file.close();
             return false;
