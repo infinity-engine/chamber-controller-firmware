@@ -2,10 +2,11 @@
 #ifndef PROTOTYPE
 #include "functionPrototype.h"
 #endif
-extern bool cell_current_addresses[6][4];
-extern const unsigned int cur_average_sample_count;
-extern unsigned char cur_sen_ads_location[6];
-extern const float acs_sensitivity;
+
+#ifndef CONFIG_CONST
+#define CONFIG_CONST
+#include "config_const.h"
+#endif
 
 float measureCellCurrentACS(unsigned char cell_id)
 {
@@ -13,7 +14,13 @@ float measureCellCurrentACS(unsigned char cell_id)
     // return measured current in Ampere from ACS sensor
     float sum = 0.0;
     // set the proper channel for for mux to ads
-    channelTheMux(cell_current_addresses[cell_id - 1]);
+    bool address[4];
+    byte tem = pgm_read_byte(&cell_current_addresses[cell_id - 1]);
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        address[i] = bitRead(tem, 7 - i);
+    }
+    channelTheMux(address);
     for (unsigned int i = 0; i < cur_average_sample_count; i++)
     {
         sum += measureFromADS(cur_sen_ads_location[cell_id - 1]);

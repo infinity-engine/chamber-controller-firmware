@@ -3,8 +3,11 @@
 #include "functionPrototype.h"
 #endif
 
-extern const unsigned char chamber_heater_relay_pin;
-extern const unsigned char chamber_cooler_relay_pin;
+#ifndef CONFIG_CONST
+#define CONFIG_CONST
+#include "config_const.h"
+#endif
+
 
 void setChamberTemperature(float set_temp, float current_temp)
 {

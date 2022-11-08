@@ -3,7 +3,11 @@
 #include "functionPrototype.h"
 #endif
 
-extern const unsigned char no_of_dht_sensor_connected;
+#ifndef CONFIG_CONST
+#define CONFIG_CONST
+#include "config_const.h"
+#endif
+
 extern DHT dht[];
 
 float measureChamberAverageTemperature()

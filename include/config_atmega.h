@@ -51,3 +51,11 @@
 
 //drive cycle
 #define DriveCycleBatchSize 20
+
+#define MAX_EXP_NAME_LENGTH 21
+
+//exp status
+#define EXP_NOT_STARTED 0
+#define EXP_RUNNING 1
+#define EXP_STOPPED 2
+#define EXP_FINISHED 3

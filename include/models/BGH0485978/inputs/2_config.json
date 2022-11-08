@@ -1,7 +1,7 @@
 {
     "mode":2,
-    "currentRate":1.2,
+    "currentRate":2,
     "resVal":null,
     "powVal":null,
-    "timeLimit":300
+    "timeLimit":100
 }

@@ -3,7 +3,7 @@
 #include "config_atmega.h"
 #endif
 
-void channelTheMux(bool address[])
+void channelTheMux(const bool address[])
 {
   bool s0 = address[0];
   bool s1 = address[1];

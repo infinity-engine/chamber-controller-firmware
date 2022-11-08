@@ -1,9 +1,10 @@
 #include "Arduino.h"
 #include"config_atmega.h"
 
-extern const unsigned no_of_discharger_connected;
-extern const unsigned fan_control_pin_location_discharger[6];
-extern const uint8_t dis_cur_force[6];
+#ifndef CONFIG_CONST
+#define CONFIG_CONST
+#include "config_const.h"
+#endif
 
 void pinInit(){
     for (unsigned char i=0;i<no_of_discharger_connected;i++){

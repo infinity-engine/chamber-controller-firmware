@@ -2,7 +2,11 @@
 #ifndef PROTOTYPE
 #include "functionPrototype.h"
 #endif
-extern const unsigned char cell_relay_location[6];
+
+#ifndef CONFIG_CONST
+#define CONFIG_CONST
+#include "config_const.h"
+#endif
 
 void setCellChargeDischarge(unsigned char cell_id, bool status)
 {

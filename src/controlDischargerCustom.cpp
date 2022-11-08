@@ -5,10 +5,16 @@
 #define current_multiplier_out 1.064
 #define current_multiplier_in 1.0681
 
+#ifndef CONFIG_CONST
+#define CONFIG_CONST
+#include "config_const.h"
+#endif
+
 extern MCP4921 MCP[];
-extern const unsigned fan_control_pin_location_discharger[6];
-extern const unsigned temp_measure_pin_location_discharger[6];
-extern const unsigned cur_measure_pin_location_discharger[6];
+#ifndef CONFIG_CONST
+#define CONFIG_CONST
+#include "config_const.h"
+#endif
 
 float previous_cur_measurement[6] = {0, 0, 0, 0, 0, 0};
 float previous_temp_measurement[6] = {0, 0, 0, 0, 0, 0};

@@ -4,9 +4,10 @@
 #endif
 #include <math.h>
 
-extern bool cell_voltage_addresses[6][4];
-extern const unsigned int vol_average_sample_count;
-extern unsigned char vol_sen_ads_location[6];
+#ifndef CONFIG_CONST
+#define CONFIG_CONST
+#include "config_const.h"
+#endif
 
 float measureCellVoltage(unsigned char cell_id)
 {
@@ -14,7 +15,13 @@ float measureCellVoltage(unsigned char cell_id)
     // returns cell voltages in Volt measured with the help of ads
 
     float sum = 0.0;
-    channelTheMux(cell_voltage_addresses[cell_id - 1]);
+    bool address[4];
+    byte tem = pgm_read_byte(&cell_voltage_addresses[cell_id - 1]);
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        address[i] = bitRead(tem, 7 - i);
+    }
+    channelTheMux(address);
     // set the proper channel
     for (unsigned int i = 0; i < vol_average_sample_count; i++)
     {

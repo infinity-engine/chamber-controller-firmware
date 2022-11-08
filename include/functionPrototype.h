@@ -4,6 +4,9 @@
 #include "config_atmega.h"
 #endif
 
+#include <SPI.h>
+#include <SdFat.h>
+
 struct CellMeasurement{
     unsigned char cellId;
     float current;
@@ -28,7 +31,7 @@ struct CellParameters{
 
 struct ExperimentParameters{
     unsigned char mode; // 1 - "ConstantCurrentCharge"| 2 - "ConstantCurrentDischarge"| 3 - "ConstantResistanceCharge"| 4 - "ConstantResistanceDischarge"|5 - "ConstantPowerCharge"| 6- "ConstantPowerDischarge";
-    float currentRate;
+    float currentRate;//absolute value for both charging and discharging
     float resVal;
     float powVal;
     unsigned long timeLimit;
@@ -40,7 +43,7 @@ struct ExperimentParameters{
     float samples_batch[DriveCycleBatchSize];
 };
 
-void channelTheMux(bool address[]);
+void channelTheMux(const bool address[]);
 float * measureCellTemperature(unsigned char cell_id,float *temps);
 float measureFromADS(unsigned char channel_id);
 float measureCellVoltage(unsigned char cell_id);
@@ -59,11 +62,17 @@ void takeApprActForDischFan(unsigned char discharger_id, bool over_write = false
 void setChargerCurrent(unsigned char discharger_id, float set_current);
 float getCurrentACS(unsigned char discharger_id);
 float myMap(float x, float in_min, float in_max, float out_min, float out_max);
-float measureAvgCellTemp(unsigned char cell_id);
+float measureAvgCellTemp(unsigned char cell_id, float *temps = NULL);
 void pinInit();
-void resetChannel(unsigned char channelId);
+void resetChannel(unsigned char channelId,bool hardReset = true);
 void reserveChannel(unsigned char channelId);
 void runExp();
 void fillExp();
 void initExp();
+bool placeNewSubExp(uint8_t channelId);
+void measureAndRecord(uint8_t channelId);
 void updateProgressBar(unsigned long count, unsigned long totalCount, int lineToPrintOn);
+uint16_t getFreeSram();
+void log_(struct ExperimentParameters *exp);
+void debug();
+void dumpFile();
