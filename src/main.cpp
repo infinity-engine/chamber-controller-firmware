@@ -280,7 +280,7 @@ void measureAndRecord(uint8_t channelId)
   // potential sd card calls
   uint8_t i = channelId - 1;
   exps.curExpStatus[i] = exps.exp[i]->performAction(api);
-  char row[100]="";
+  char row[150]="";
   formRow(row,exps.exp[i]);
   if (!api.logReadings(i + 1,row))
   {
@@ -411,7 +411,6 @@ void setup()
   //sd.ls("/",LS_R);
   //debug();
   test();
-  //debug();
 }
 
 void loop()

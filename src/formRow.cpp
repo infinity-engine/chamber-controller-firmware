@@ -4,8 +4,8 @@
 
 void formRow(char *row, ConstantChargeDischarge *exp)
 {
-    char buff[10] = "";
-    itoa(millis()-exp->expParamters.startTime,buff,10);
+    char buff[20] = "";
+    dtostrf((millis()-exp->expParamters.startTime)/1000.0,2,2,buff);
     strcat(row,buff);
 
     strcat(row,",");
