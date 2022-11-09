@@ -1,10 +1,6 @@
 #include "Arduino.h"
 #include"config_atmega.h"
-
-#ifndef CONFIG_CONST
-#define CONFIG_CONST
 #include "config_const.h"
-#endif
 
 void pinInit(){
     for (unsigned char i=0;i<no_of_discharger_connected;i++){

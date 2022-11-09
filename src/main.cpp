@@ -4,27 +4,11 @@
 // #include <avr/interrupt.h>
 // #include "avr8-stub.h"
 
-#ifndef PROTOTYPE
-#define PROTOTYPE
 #include "functionPrototype.h"
-#endif
-
-
-#ifndef CONFIG_CONST
-#define CONFIG_CONST
 #include "config_const.h"
-#endif
-
-#ifndef CYCCHDIS
-#define CYCCHDIS
-#include "CyclicChargeDischarge.cpp"
-#endif
-
-#ifndef READWRITEEXPAPI
-#define READWRITEEXPAPI
-#include "ReadWriteEXPAPI.cpp"
-#endif
-
+#include "ReadWriteEXPAPI.h"
+#include "ConstantChargeDischarge.h"
+#include "config_atmega.h"
 #include <Adafruit_ADS1X15.h>
 #include <SPI.h>
 Adafruit_ADS1115 ads;
@@ -131,15 +115,22 @@ DHT dht[] = {{DHTPIN_1, DHTTYPE_1}, {DHTPIN_2, DHTTYPE_2}, {DHTPIN_3, DHTTYPE_3}
 struct myStructure
 {
   ConstantChargeDischarge *exp[N_CELL_CAPABLE]; // store the object for any sub experiment per channel
+  unsigned int noOfSubExps[N_CELL_CAPABLE];     // total no of sub-exp to be run for this particular channel
+  unsigned int nthCurExp[N_CELL_CAPABLE];       // points to what no of experiment the current channel is running
   unsigned char curExpStatus[N_CELL_CAPABLE];   // corresponds to each cell configured; -> sub-exp
   bool isFreeForNewExps[N_CELL_CAPABLE];        // corresponds to each cell configured, also point to last setof exps
   bool isLastExp[N_CELL_CAPABLE];
-  unsigned int noOfSubExps[N_CELL_CAPABLE]; // total no of sub-exp to be run for this particular channel
-  unsigned int nthCurExp[N_CELL_CAPABLE];   // points to what no of experiment the current channel is running
 };
-struct myStructure exps;
+struct myStructure exps; // 54 bytes, exp only holds the ConstantChargeDischarge's address
 
-ReadWriteExpAPI api;
+void formRow(char *row,ConstantChargeDischarge *exp);
+
+
+ConstantChargeDischarge expStore[N_CELL_CAPABLE]; // 177*6 = 1062 bytes global space
+
+// allocate store for the objects in global space
+
+ReadWriteExpAPI api; // 177 bytes
 
 /**
  * @brief open all the channel for set of experiments
@@ -154,6 +145,10 @@ void initExp()
       {true, true, true, true, true, true},                                                                   // is last exp
       {0, 0, 0, 0, 0, 0},                                                                                     // no of sub exps
       {0, 0, 0, 0, 0, 0}};                                                                                    // nth cur exp
+  for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
+  {
+    expStore[i].reset(i + 1);
+  }
 }
 
 /**
@@ -256,7 +251,7 @@ void runExp()
           // add some finishing touches
           Serial.println(F("All sub-exps are finished."));
           api.resetAPIChannel(i + 1);
-          resetChannel(i+1);
+          resetChannel(i + 1);
         }
         else
         {
@@ -285,7 +280,10 @@ void measureAndRecord(uint8_t channelId)
   // potential sd card calls
   uint8_t i = channelId - 1;
   exps.curExpStatus[i] = exps.exp[i]->performAction(api);
-  if(!api.logReadings(i+1,&exps.exp[i]->measurement,&exps.exp[i]->chmMeas)){
+  char row[100]="";
+  formRow(row,exps.exp[i]);
+  if (!api.logReadings(i + 1,row))
+  {
     Serial.println(F("Log data failed"));
     exps.curExpStatus[i] = EXP_STOPPED;
     return;
@@ -300,7 +298,6 @@ void measureAndRecord(uint8_t channelId)
   Serial.print(exps.exp[i]->chmMeas.avgHum);
   Serial.print(F(",Chamber Temp.(°C):"));
   Serial.println(exps.exp[i]->chmMeas.avgTemp);
-
 }
 
 bool placeNewSubExp(uint8_t channelId)
@@ -314,12 +311,12 @@ bool placeNewSubExp(uint8_t channelId)
   {
     exps.isLastExp[i] = true;
   }
-  ConstantChargeDischarge e = {channelId}; // create a new instance of sub exp
-  exps.exp[0] = &e;
+  expStore[i].reset(i+1);
+  exps.exp[i] = &expStore[i]; // 177 bytes
   if (api.setUpNextSubExp(channelId, &exps.exp[i]->expParamters))
   {
     // update the exp from the data received and already placed on object property.
-    e.setup();
+    exps.exp[i]->setup();
     status = true;
   }
   else
@@ -378,7 +375,7 @@ void lcd_init()
 void setup()
 {
   // debug_init();
-  Serial.begin(500000);
+  Serial.begin(115200);
   Serial.println(F("Starting Engine !!"));
   Serial.print("Free SRAM ");
   Serial.print(getFreeSram());
@@ -411,10 +408,9 @@ void setup()
     MCP[i].begin(chip_select_pin_location_discharger[i]);
   }
   initExp();
+  //sd.ls("/",LS_R);
+  //debug();
   test();
-  // Serial.print(F("Available RAM "));
-  // Serial.print(freeMemory());
-  // Serial.println(F("Bytes"));
   //debug();
 }
 
@@ -425,45 +421,27 @@ void loop()
   runExp();
 }
 
-void debug(){
-  // file = sd.open("BGH0485978/outputs/1_logs.csv");
-  // if (file){
-  //   dumpFile();
-  // }else {
-  //   Serial.println(F("Error opening file."));
-  // }
-  // const bool *nums = pgm_read_ptr(&store[0]);
-  // Serial.println(pgm_read_byte(&nums[0]));
-  // Serial.println(pgm_read_byte(&nums[1]));
-  // Serial.println((bool)pgm_read_byte(&nums[0]));
-  // Serial.println((bool)pgm_read_byte(&nums[1]));
-  byte tem= pgm_read_byte(&cell_voltage_addresses[0]);
-  for(uint8_t i= 0;i<4;i++){
-    Serial.print(bitRead(tem,7-i));
+void debug()
+{
+  file = sd.open("BGH0485978/outputs/1_logs.csv");
+  if (file)
+  {
+    dumpFile();
   }
-  Serial.println();
-  tem= pgm_read_byte(&cell_voltage_addresses[1]);
-  for(uint8_t i= 0;i<4;i++){
-    Serial.print(bitRead(tem,7-i));
+  else
+  {
+    Serial.println(F("Error opening file."));
   }
-  Serial.println();
-  tem= pgm_read_byte(&cell_voltage_addresses[2]);
-  for(uint8_t i= 0;i<4;i++){
-    Serial.print(bitRead(tem,7-i));
-  }
-  Serial.println();
-  tem= pgm_read_byte(&cell_voltage_addresses[3]);
-  for(uint8_t i= 0;i<4;i++){
-    Serial.print(bitRead(tem,7-i));
-  }
-  Serial.println();
-  tem= pgm_read_byte(&cell_voltage_addresses[4]);
-  for(uint8_t i= 0;i<4;i++){
-    Serial.print(bitRead(tem,7-i));
-  }
-  Serial.println();
-  tem= pgm_read_byte(&cell_voltage_addresses[5]);
-  for(uint8_t i= 0;i<4;i++){
-    Serial.print(bitRead(tem,7-i));
-  }
+  file.close();
+  // FatFile cwd;
+  // sd.chdir("/");
+  // sd.remove("BGH0485978/1_logs.csv");
+  // api.resetAPIChannel(1,"BGH0485978");
+  // api.currentSubExpNo[0] = 1;
+  // api.isHeaderWritten[0] = false;
+  // struct CellMeasurement m;
+  // struct ChamberMeasurement c;
+  // api.logReadings(1,&m,&c);
+  // delay(5000);
+  // sd.ls("/",LS_R);
 }

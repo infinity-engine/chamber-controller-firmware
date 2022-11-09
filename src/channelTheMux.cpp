@@ -1,7 +1,5 @@
 #include <Arduino.h>
-#ifndef CONFIG_ATMEGA
 #include "config_atmega.h"
-#endif
 
 void channelTheMux(const bool address[])
 {

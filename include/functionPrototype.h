@@ -1,9 +1,8 @@
+#ifndef PROTOTYPE
+#define PROTOTYPE
+
 #include <DHT.h>
-
-#ifndef CONFIG_ATMEGA
 #include "config_atmega.h"
-#endif
-
 #include <SPI.h>
 #include <SdFat.h>
 
@@ -76,3 +75,6 @@ uint16_t getFreeSram();
 void log_(struct ExperimentParameters *exp);
 void debug();
 void dumpFile();
+
+
+#endif //PROTOTYPE

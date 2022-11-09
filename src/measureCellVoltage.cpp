@@ -1,13 +1,7 @@
 #include <Arduino.h>
-#ifndef PROTOTYPE
 #include "functionPrototype.h"
-#endif
 #include <math.h>
-
-#ifndef CONFIG_CONST
-#define CONFIG_CONST
 #include "config_const.h"
-#endif
 
 float measureCellVoltage(unsigned char cell_id)
 {

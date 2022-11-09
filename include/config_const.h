@@ -1,3 +1,7 @@
+#ifndef CONFIG_CONST
+#define CONFIG_CONST
+#include <Arduino.h>
+
 extern const uint8_t no_of_temp_sen_connected_cell[];
 extern const uint16_t temp_average_sample_count;
 extern const uint16_t vol_average_sample_count;
@@ -28,3 +32,6 @@ extern const uint8_t cur_measure_pin_location_discharger[];
 
 extern const uint8_t no_of_discharger_connected;
 extern const int *const store[];
+
+
+#endif //CONFIG_CONST

@@ -1,20 +1,12 @@
-#ifndef PROTOTYPE
 #include "functionPrototype.h"
-#endif
 #include <MCP_DAC.h>
+
+#include "config_const.h"
+
 #define current_multiplier_out 1.064
 #define current_multiplier_in 1.0681
 
-#ifndef CONFIG_CONST
-#define CONFIG_CONST
-#include "config_const.h"
-#endif
-
 extern MCP4921 MCP[];
-#ifndef CONFIG_CONST
-#define CONFIG_CONST
-#include "config_const.h"
-#endif
 
 float previous_cur_measurement[6] = {0, 0, 0, 0, 0, 0};
 float previous_temp_measurement[6] = {0, 0, 0, 0, 0, 0};
@@ -120,11 +112,13 @@ void setChargerCurrent(unsigned char discharger_id, float set_current)
 {
     // charger id 1,2,3,4,5,6
 }
+
 float getCurrentACS(unsigned char discharger_id)
 {
     //current measurement using acs sensor
     return 0;
 }
+
 float myMap(float x, float in_min, float in_max, float out_min, float out_max)
 {
     // maps input from one range to different range

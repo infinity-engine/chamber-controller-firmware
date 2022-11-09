@@ -1,3 +1,6 @@
+#ifndef CONFIG_ATMEGA
+#define CONFIG_ATMEGA
+
 #define adc0 0
 #define adc1 1
 #define adc2 2
@@ -59,3 +62,5 @@
 #define EXP_RUNNING 1
 #define EXP_STOPPED 2
 #define EXP_FINISHED 3
+
+#endif //CONFIG_ATMEGA

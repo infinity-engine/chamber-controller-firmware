@@ -1,9 +1,5 @@
 #include <Arduino.h>
-#ifndef PROTOTYPE
-#define PROTOTYPE
 #include "functionPrototype.h"
-#endif
-
 void log_(struct ExperimentParameters *exp)
     {
 

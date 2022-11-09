@@ -1,12 +1,6 @@
 #include <DHT.h>
-#ifndef PROTOTYPE
 #include "functionPrototype.h"
-#endif
-
-#ifndef CONFIG_CONST
-#define CONFIG_CONST
 #include "config_const.h"
-#endif
 
 extern DHT dht[];
 
