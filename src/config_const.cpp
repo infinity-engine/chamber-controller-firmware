@@ -4,7 +4,7 @@
 
 #include <Arduino.h>
 
-extern const uint8_t no_of_temp_sen_connected_cell[6] = {1, 6, 6, 6, 6, 6}; // set the no of temperature connected in each cells
+extern const uint8_t no_of_temp_sen_connected_cell[6] = {2, 6, 6, 6, 6, 6}; // set the no of temperature connected in each cells
 extern const uint16_t temp_average_sample_count = 2;                        // set the no. of samples for avereging the temperature readings
 
 // voltage sensor
@@ -12,7 +12,7 @@ extern const uint16_t vol_average_sample_count = 5; // set the no. of samples fo
 
 // current sensor
 extern const uint16_t cur_average_sample_count = 10; // set the no. of samples for averaging the current measurement
-extern const float acs_sensitivity = 0.1;            // 0.1 - 20A range, 0.185 - 5A range, 0.066 - 30A range
+extern const float acs_sensitivity = 0.185;            // 0.1 - 20A range, 0.185 - 5A range, 0.066 - 30A range
 
 // NTC 100K parameters
 /*
@@ -26,7 +26,7 @@ extern const float ntc_a = 283786.2, ntc_b = 0.06593, ntc_c = 39886.0; // 0.4 de
 extern const uint8_t no_of_dht_sensor_connected = 1; // Max 4
 
 // In fromat of s0,s1,s2,s3.
-//  s0 - LSB and s1 - MSB
+//  s0 - LSB and s3 - MSB
 //  These are the signals which is required for CD74HC module to point to desired channel
 const byte T_Address_1[] PROGMEM = {B00000000, B10000000, B01000000, B11000000, B00100000, B10100000}; // cell 1 -> 0,1,2,3,4,5
 const byte T_Address_2[] PROGMEM = {B01100000, B11100000, B00010000, B10010000, B01010000, B11010000}; // cell 2 -> 6,7,8,9,10,11
@@ -52,12 +52,12 @@ extern const byte cell_voltage_addresses[6] PROGMEM =
 
 extern const byte cell_current_addresses[6] PROGMEM =
     {
-        B00000000,//{false, false, false, false}, // cell 1 voltage -> 0
-        B10000000,//{true, false, false, false},  // cell 2 voltage -> 1
-        B01000000,//{false, true, false, false},  // cell 3 voltage -> 2
-        B11000000,//{true, true, false, false},   // cell 4 voltage -> 3
-        B00100000,//{false, false, true, false},  // cell 5 voltage -> 4
-        B10100000//{true, false, true, false}    // cell 6 voltage -> 5
+        B00010000,//{false, false, false, true}, // cell 1 current -> 8
+        B10010000,//{true, false, false, true},  // cell 2 current -> 9
+        B01010000,//{false, true, false, true},  // cell 3 current -> 10
+        B11010000,//{true, true, false, true},   // cell 4 current -> 11
+        B00110000,//{false, false, true, true},  // cell 5 current -> 12
+        B10110000//{true, false, true, true}    // cell 6 current -> 13
     };
 
 // Location for all the cell temperature sensor, on different ads pins of ads 1115

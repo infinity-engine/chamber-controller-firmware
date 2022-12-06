@@ -3,7 +3,6 @@
 
 #include "config_const.h"
 #include "functionPrototype.h"
-#include <SPI.h>
 #include <SdFat.h>
 extern SdFs sd;
 extern FsFile dir;

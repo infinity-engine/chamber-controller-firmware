@@ -1,4 +1,3 @@
-#include <SPI.h>
 #include <SdFat.h>
 extern SdFs sd;
 extern FsFile dir;

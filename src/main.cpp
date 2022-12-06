@@ -10,7 +10,6 @@
 #include "ConstantChargeDischarge.h"
 #include "config_atmega.h"
 #include <Adafruit_ADS1X15.h>
-#include <SPI.h>
 Adafruit_ADS1115 ads;
 
 #include <Adafruit_Sensor.h>
@@ -19,7 +18,6 @@ Adafruit_ADS1115 ads;
 #include "MCP_DAC.h"
 MCP4921 MCP[6] = {{}, {}, {}, {}, {}, {}}; // create 6 instances of MCP4921
 
-#include <SPI.h>
 #include <SdFat.h>
 // 1 for FAT16/FAT32, 2 for exFAT, 3 for FAT16/FAT32 and exFAT.
 #define SD_FAT_TYPE 3
@@ -123,8 +121,7 @@ struct myStructure
 };
 struct myStructure exps; // 54 bytes, exp only holds the ConstantChargeDischarge's address
 
-void formRow(char *row,ConstantChargeDischarge *exp);
-
+void formRow(char *row, ConstantChargeDischarge *exp);
 
 ConstantChargeDischarge expStore[N_CELL_CAPABLE]; // 177*6 = 1062 bytes global space
 
@@ -241,9 +238,12 @@ void runExp()
       if (exps.curExpStatus[i] == EXP_FINISHED)
       {
         // if the current sub-experiment is in finished status
-        Serial.print(F("Sub exp. "));
-        Serial.print(exps.nthCurExp[i]);
-        Serial.println(F(" finished."));
+        if (ISLOGENABLED)
+        {
+          Serial.print(F("Sub exp. "));
+          Serial.print(exps.nthCurExp[i]);
+          Serial.println(F(" finished."));
+        }
         // check whther it was the last experiment among all the set of experiment for the particular cell to run
         if (exps.isLastExp[i])
         {
@@ -280,9 +280,9 @@ void measureAndRecord(uint8_t channelId)
   // potential sd card calls
   uint8_t i = channelId - 1;
   exps.curExpStatus[i] = exps.exp[i]->performAction(api);
-  char row[150]="";
-  formRow(row,exps.exp[i]);
-  if (!api.logReadings(i + 1,row))
+  char row[150] = "";
+  formRow(row, exps.exp[i]);
+  if (!api.logReadings(i + 1, row))
   {
     Serial.println(F("Log data failed"));
     exps.curExpStatus[i] = EXP_STOPPED;
@@ -304,14 +304,17 @@ bool placeNewSubExp(uint8_t channelId)
 {
   bool status = true;
   uint8_t i = channelId - 1;
-  Serial.print(F("Placing sub-exp "));
-  Serial.println(exps.nthCurExp[i] + 1);
+  if (ISLOGENABLED)
+  {
+    Serial.print(F("Placing sub-exp "));
+    Serial.println(exps.nthCurExp[i] + 1);
+  }
   exps.nthCurExp[i] += 1; // increment the sub exp count
   if (exps.nthCurExp[i] == exps.noOfSubExps[i])
   {
     exps.isLastExp[i] = true;
   }
-  expStore[i].reset(i+1);
+  expStore[i].reset(i + 1);
   exps.exp[i] = &expStore[i]; // 177 bytes
   if (api.setUpNextSubExp(channelId, &exps.exp[i]->expParamters))
   {
@@ -334,7 +337,7 @@ void test()
   api.resetAPIChannel(1, "BGH0485978");
   if (placeNewSubExp(1))
   {
-    exps.noOfSubExps[0] = 3; // this one has to updated from all exp together, you should fetch it from sd card
+    exps.noOfSubExps[0] = 4; // this one has to updated from all exp together, you should fetch it from sd card
     reserveChannel(1);       // start and reserve the channel
   }
   else
@@ -408,15 +411,15 @@ void setup()
     MCP[i].begin(chip_select_pin_location_discharger[i]);
   }
   initExp();
-  //sd.ls("/",LS_R);
-  //debug();
+  // sd.ls("/",LS_R);
+  // debug();
   test();
 }
 
 void loop()
 {
   // put your main code here, to run repeatedly:
-  // fillExp();
+  fillExp();
   runExp();
 }
 

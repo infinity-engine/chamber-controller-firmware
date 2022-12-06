@@ -1,6 +1,7 @@
 #include "Arduino.h"
 #include"config_atmega.h"
 #include "config_const.h"
+#include "functionPrototype.h"
 
 void pinInit(){
     for (unsigned char i=0;i<no_of_discharger_connected;i++){
@@ -9,8 +10,12 @@ void pinInit(){
     }
     for (unsigned char i=0;i<no_of_discharger_connected;i++){
         pinMode(dis_cur_force[i],OUTPUT);
-        digitalWrite(dis_cur_force[i],LOW);
+        digitalWrite(dis_cur_force[i],HIGH);//force to 0 current 
+        takeApprActForDischFan(i,HIGH, HIGH);//by default turn on the discharger fan
+        pinMode(cell_relay_location[i],OUTPUT);
+        digitalWrite(cell_relay_location[i],relay_off);
     }
+    
     pinMode(S0,OUTPUT);
     pinMode(S1,OUTPUT);
     pinMode(S2,OUTPUT);

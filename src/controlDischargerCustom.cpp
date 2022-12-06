@@ -27,6 +27,11 @@ void setDischargerCurrent(unsigned char discharger_id, float set_current)
     float set_voltage = 0.34 * set_current * current_multiplier_out;
     unsigned int mcp_eqv = int(myMap(set_voltage, 0, 5, 0, 4095));
     MCP[discharger_id - 1].analogWrite(mcp_eqv, 0);
+    if (mcp_eqv == 0){
+        digitalWrite(dis_cur_force[discharger_id - 1],HIGH);//force to 0 current 
+    }else{
+        digitalWrite(dis_cur_force[discharger_id - 1],LOW);//open the channel
+    }
 }
 
 float getDischargerCurrent(unsigned char discharger_id)

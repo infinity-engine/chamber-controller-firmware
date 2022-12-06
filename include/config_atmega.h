@@ -1,6 +1,10 @@
 #ifndef CONFIG_ATMEGA
 #define CONFIG_ATMEGA
 
+
+
+#define ISLOGENABLED false
+
 #define adc0 0
 #define adc1 1
 #define adc2 2
@@ -28,14 +32,14 @@
 
 //change it according to the relay configuration
 //what signal level it is required to keep the relay on? is it high(true) or low(false)
-#define relay_on true
-#define relay_off false
+#define relay_on false//active low pin
+#define relay_off true//active low pin
 
 
 //change it accordingly
 //whether the charging/discharging is connected on NC/NO of relay
-#define relay_cell_charge true
-#define relay_cell_discharge false
+#define relay_cell_charge relay_on
+#define relay_cell_discharge relay_off
 
 #define SD_card_module_cs 53
 

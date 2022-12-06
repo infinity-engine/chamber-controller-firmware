@@ -3,7 +3,6 @@
 
 #include <DHT.h>
 #include "config_atmega.h"
-#include <SPI.h>
 #include <SdFat.h>
 
 struct CellMeasurement{

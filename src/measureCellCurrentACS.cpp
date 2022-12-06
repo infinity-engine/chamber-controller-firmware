@@ -21,5 +21,5 @@ float measureCellCurrentACS(unsigned char cell_id)
         delay(3); // give some time to acs to settle
     }
     float acsValue = float(sum / cur_average_sample_count);
-    return float((2.5 - (acsValue * (5.0 / 1024.0))) / acs_sensitivity);
+    return float((2.5 - acsValue) / acs_sensitivity);
 }

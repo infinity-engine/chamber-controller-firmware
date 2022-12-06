@@ -1,7 +1,7 @@
 #include "ConstantChargeDischarge.h"
 #define LIMIT_TO_BE_CHECK false
 
-ConstantChargeDischarge::ConstantChargeDischarge(){}
+ConstantChargeDischarge::ConstantChargeDischarge() {}
 
 void ConstantChargeDischarge::reset(unsigned char cell_id, unsigned char mode)
 {
@@ -154,7 +154,10 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
         if (curTime - expParamters.startTime >= expParamters.timeLimit * 1000)
         {
             // set time has reached
-            Serial.println(F("Time's up."));
+            if (ISLOGENABLED)
+            {
+                Serial.println(F("Time's up."));
+            }
             status = EXP_FINISHED; // completed
         }
     }
@@ -162,7 +165,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
     {
         finish();
     }
-    
+
     return status;
 }
 
@@ -171,7 +174,7 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, int sam
     unsigned status = EXP_RUNNING;
     if (curTime > expParamters.prevTime + sampleTime)
     {
-        //log_(&expParamters);
+        // log_(&expParamters);
         if (expParamters.sampleIndicator == 0)
         {
             // just for the first time
@@ -186,12 +189,14 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, int sam
                 return status;
             }
         }
-        
-        Serial.print(F("Drive-cycle sample indicator "));
-        Serial.println(expParamters.sampleIndicator);
+        if (ISLOGENABLED)
+        {
+            Serial.print(F("Drive-cycle sample indicator "));
+            Serial.println(expParamters.sampleIndicator);
+        }
         unsigned char indicator = ((expParamters.sampleIndicator - 1) % DriveCycleBatchSize); // get the position on cureent batch,array indicator [0 <-> (batchsize-1)]
         float cur_A = expParamters.samples_batch[indicator];
-        
+
         if (cur_A >= 0)
         {
             setDischargerCurrent(parameters.cellId, cur_A);
@@ -212,7 +217,10 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, int sam
         else if (indicator >= DriveCycleBatchSize)
         {
             // get the new set of samples
-            Serial.println(F("Filling next set of samples."));
+            if (ISLOGENABLED)
+            {
+                Serial.println(F("Filling next set of samples."));
+            }
             if (!api.fillNextDriveCyclePortion(parameters.cellId, &expParamters))
             {
                 // some error occur so stop

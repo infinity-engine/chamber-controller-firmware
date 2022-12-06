@@ -46,8 +46,11 @@ bool ReadWriteExpAPI::setUpNextSubExp(unsigned char cellId, struct ExperimentPar
     sd.chdir("/");
     if (sd.exists(expName[cellId]))
     {
-        Serial.print(expName[cellId]);
-        Serial.println(F(" -> config exists."));
+        if (ISLOGENABLED)
+        {
+            Serial.print(expName[cellId]);
+            Serial.println(F(" -> config exists."));
+        }
         currentSubExpNo[cellId]++;
     }
     else
@@ -177,7 +180,7 @@ bool ReadWriteExpAPI::logReadings(unsigned char cellId, char *row)
     char path[MAX_EXP_NAME_LENGTH + 10] = "";
     sprintf(path, "%s/outputs", expName[cellId]);
     // Serial.println(path);
-    
+
     if (!isOpDirChecked[cellId])
     {
         // if it is the first sub experiment of the series
@@ -226,15 +229,16 @@ bool ReadWriteExpAPI::logReadings(unsigned char cellId, char *row)
         {
             // write the header row first
             char head[100] = "";
-            formHead(head, cellId+1);
+            formHead(head, cellId + 1);
 
-            //Serial.println(head);
+            // Serial.println(head);
             file.println(head);
             logSDPointer[cellId] = file.position();
             isHeaderWritten[cellId] = true;
         }
-        //Serial.println(row);
-        if(file.seek(logSDPointer[cellId])){
+        // Serial.println(row);
+        if (file.seek(logSDPointer[cellId]))
+        {
             file.println(row);
             logSDPointer[cellId] = file.position();
         }
@@ -246,7 +250,7 @@ bool ReadWriteExpAPI::logReadings(unsigned char cellId, char *row)
         return false;
     }
     file.close();
-    //sd.ls("/",LS_R);
+    // sd.ls("/",LS_R);
     return true;
 }
 
