@@ -36,6 +36,7 @@ void setDischargerCurrent(unsigned char discharger_id, float set_current)
 
 float getDischargerCurrent(unsigned char discharger_id)
 {
+    // takes around 1.5ms for 10 sample average
     // calculates running average with the average of 10 samples
     // running average for previous 1/(1-beta) = 10 samples
     //  beta = 0.9;

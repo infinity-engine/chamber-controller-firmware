@@ -33,5 +33,8 @@ extern const uint8_t cur_measure_pin_location_discharger[];
 extern const uint8_t no_of_discharger_connected;
 extern const int *const store[];
 
+extern const unsigned int sample_update_delay;//in ms;used to limit how frequently the experiment data are logged at the time of charging experiment
+
+
 
 #endif //CONFIG_CONST

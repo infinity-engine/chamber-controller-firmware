@@ -5,6 +5,9 @@
 float *measureCellTemperature(unsigned char cell_id, float *temps)
 {
     // cell_id starts from 1,2...6
+    // time consumption = 8ms/sample/sensor
+
+    //6 sensors and 2 samples == 97ms
 
     float V_0 = 5.0;      // Volt
     float R_1 = 200000.0; // ohm

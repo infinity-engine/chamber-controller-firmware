@@ -7,7 +7,7 @@ float measureCellVoltage(unsigned char cell_id)
 {
     // cell_id starts from 1,2...6
     // returns cell voltages in Volt measured with the help of ads
-
+    // 7.8ms/sample
     float sum = 0.0;
     bool address[4];
     byte tem = pgm_read_byte(&cell_voltage_addresses[cell_id - 1]);

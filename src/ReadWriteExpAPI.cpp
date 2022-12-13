@@ -172,6 +172,7 @@ bool ReadWriteExpAPI::fillNextDriveCyclePortion(unsigned char cellId, struct Exp
 
 bool ReadWriteExpAPI::logReadings(unsigned char cellId, char *row)
 {
+    // on an average takes 15ms
     cellId--;
     // Serial.print(F("Available RAM "));
     // Serial.print(freeMemory());

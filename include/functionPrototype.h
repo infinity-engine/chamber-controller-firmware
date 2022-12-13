@@ -34,7 +34,8 @@ struct ExperimentParameters{
     float powVal;
     unsigned long timeLimit;
     unsigned long startTime;
-    unsigned long prevTime;
+    unsigned long prevTime;// last instant on which measurement sdata has been updated
+    unsigned long prevDriveCycleSampleUpdate;// last instant on which the drive cycle value has been fetched
     float curToll;//currentTollerence
     unsigned int sampleIndicator;//drive cycle sample indicator 0 for no point, point among [1-total_n_samples]
     unsigned int total_n_samples;//total no. of samples in the drive cycle
@@ -68,7 +69,7 @@ void runExp();
 void fillExp();
 void initExp();
 bool placeNewSubExp(uint8_t channelId);
-void measureAndRecord(uint8_t channelId);
+void measureAndRecord(uint8_t channelId,bool logOnSerial = false);
 void updateProgressBar(unsigned long count, unsigned long totalCount, int lineToPrintOn);
 uint16_t getFreeSram();
 void log_(struct ExperimentParameters *exp);

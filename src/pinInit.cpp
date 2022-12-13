@@ -11,7 +11,7 @@ void pinInit(){
     for (unsigned char i=0;i<no_of_discharger_connected;i++){
         pinMode(dis_cur_force[i],OUTPUT);
         digitalWrite(dis_cur_force[i],HIGH);//force to 0 current 
-        takeApprActForDischFan(i,HIGH, HIGH);//by default turn on the discharger fan
+        //takeApprActForDischFan(i,HIGH, HIGH);//by default turn on the discharger fan
         pinMode(cell_relay_location[i],OUTPUT);
         digitalWrite(cell_relay_location[i],relay_off);
     }

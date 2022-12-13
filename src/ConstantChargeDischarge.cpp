@@ -14,7 +14,7 @@ void ConstantChargeDischarge::reset(unsigned char cell_id, unsigned char mode)
         0                   // avgtemperatue
     };
     parameters = {cell_id, 4.2, 3.0, 80, -20};
-    expParamters = {mode, 0, 0, 0, 0, 0, 0, 0.1, 0, 0};
+    expParamters = {mode, 0, 0, 0, 0, 0, 0, 0, 0.1, 0, 0};
     chmMeas = {0, 0};
 }
 
@@ -24,6 +24,7 @@ void ConstantChargeDischarge::setup(bool timeReset)
     {
         expParamters.startTime = millis();
         expParamters.prevTime = expParamters.startTime;
+        expParamters.prevDriveCycleSampleUpdate = expParamters.startTime;
     }
     // set of instruction when to start a particular experiment
     switch (expParamters.mode)
@@ -65,6 +66,7 @@ void ConstantChargeDischarge::finish()
     case ConstantCurrentDischarge:
         setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
         setDischargerCurrent(parameters.cellId, 0);
+        takeApprActForDischFan(parameters.cellId,true, false);
         break;
     case ConstantResistanceCharge:
         break;
@@ -78,6 +80,7 @@ void ConstantChargeDischarge::finish()
         setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
         setDischargerCurrent(parameters.cellId, 0);
         setChargerCurrent(parameters.cellId, 0);
+        takeApprActForDischFan(parameters.cellId,true, false);
         break;
     default:
         break;
@@ -86,10 +89,13 @@ void ConstantChargeDischarge::finish()
 
 uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
 {
-    measureCellTemperature(parameters.cellId, measurement.temperature);
+    // time consumption - minimum 88ms; max 174 ms
+    measureCellTemperature(parameters.cellId, measurement.temperature);//97ms for 6 sensors and 2 samples
     measurement.avgTemperature = measureAvgCellTemp(parameters.cellId, measurement.temperature);
-    measurement.voltage = measureCellVoltage(parameters.cellId);
+    measurement.voltage = measureCellVoltage(parameters.cellId);//39ms for for 5 samples 
     unsigned char status = EXP_RUNNING;
+    unsigned long curTime = millis();
+    expParamters.prevTime = curTime;
     switch (expParamters.mode)
     {
     case ConstantCurrentCharge:
@@ -147,7 +153,6 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
         break;
     }
     // update the time parameters
-    unsigned long curTime = millis();
     if (expParamters.timeLimit > 0)
     {
         // if time limit is set
@@ -159,20 +164,20 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
                 Serial.println(F("Time's up."));
             }
             status = EXP_FINISHED; // completed
+            finish();
         }
     }
     if (status != EXP_RUNNING)
     {
         finish();
     }
-
     return status;
 }
 
 uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, int sampleTime, unsigned long curTime)
 {
     unsigned status = EXP_RUNNING;
-    if (curTime > expParamters.prevTime + sampleTime)
+    if (curTime > expParamters.prevDriveCycleSampleUpdate + sampleTime)
     {
         // log_(&expParamters);
         if (expParamters.sampleIndicator == 0)
@@ -227,7 +232,7 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, int sam
                 status = EXP_STOPPED;
             }
         }
-        expParamters.prevTime = curTime;
+        expParamters.prevDriveCycleSampleUpdate = curTime;
     }
     chmMeas.avgHum = measureChamberAverageHumidity();
     chmMeas.avgTemp = measureChamberAverageTemperature();
