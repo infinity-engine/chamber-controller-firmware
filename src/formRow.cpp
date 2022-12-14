@@ -5,7 +5,7 @@
 void formRow(char *row, ConstantChargeDischarge *exp)
 {
     char buff[20] = "";
-    dtostrf((exp->expParamters.prevTime-exp->expParamters.startTime)/1000.0,2,2,buff);
+    dtostrf((millis()-exp->expParamters.startTime)/1000.0,2,2,buff);
     strcat(row,buff);
 
     strcat(row,",");
