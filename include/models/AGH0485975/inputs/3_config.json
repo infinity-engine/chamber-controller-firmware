@@ -4,5 +4,8 @@
     "resVal":null,
     "powVal":null,
     "timeLimit":0,
-    "total_n_samples":45
+    "total_n_samples":45,
+    "multiplier":1,
+    "ambTemp":null,
+    "holdVolt":null
 }

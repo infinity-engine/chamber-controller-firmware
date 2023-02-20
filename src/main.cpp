@@ -117,7 +117,11 @@ struct myStructure
   unsigned int nthCurExp[N_CELL_CAPABLE];       // points to what no of experiment the current channel is running
   unsigned char curExpStatus[N_CELL_CAPABLE];   // corresponds to each cell configured; -> sub-exp
   bool isFreeForNewExps[N_CELL_CAPABLE];        // corresponds to each cell configured, also point to last setof exps
-  bool isLastExp[N_CELL_CAPABLE];
+  bool isLastExp[N_CELL_CAPABLE];               // is the current sub experiment is the last of the set of subexperiment
+  bool isConAmTe[N_CELL_CAPABLE];               // is consistant ambient temperature requred for all the sub experiments
+  // it the temperature varies in between a sub experiment then multiple channel experiment is logically not possible.
+  float ambTemp[N_CELL_CAPABLE];
+  unsigned int overallMultiplier[N_CELL_CAPABLE];
 };
 struct myStructure exps; // 54 bytes, exp only holds the ConstantChargeDischarge's address
 
@@ -224,7 +228,7 @@ void resetChannel(unsigned char channelId, bool hardReset)
 void runExp()
 {
   // time for each channel takes around 148ms while constant - discharging-experiment
-  // 
+  //
   // 260ms for charging experiment
   for (unsigned char i = 0; i < N_CELL_CAPABLE; i++)
   {
@@ -233,12 +237,14 @@ void runExp()
       if (exps.curExpStatus[i] == EXP_RUNNING && exps.isFreeForNewExps[i] == false)
       {
         // there is an sub-exp placed, which is running, and the channel is occupied
-        if(exps.exp[i]->expParamters.mode == DriveCycle){
-          //frequent update is only necessary in drive cycle mode
-          measureAndRecord(i + 1,false);
+        if (exps.exp[i]->expParamters.mode == DriveCycle)
+        {
+          // frequent update is only necessary in drive cycle mode
+          measureAndRecord(i + 1, false);
         }
-        else if (millis() - exps.exp[i]->expParamters.prevTime > sample_update_delay){
-           measureAndRecord(i + 1,false);
+        else if (millis() - exps.exp[i]->expParamters.prevTime > sample_update_delay)
+        {
+          measureAndRecord(i + 1, false);
         }
       }
 
@@ -258,7 +264,7 @@ void runExp()
           // all set of sub exps for the particular channel has finished.
           // add some finishing touches
           Serial.print(F("All sub-exps are finished for channel "));
-          Serial.println(i+1);
+          Serial.println(i + 1);
           api.resetAPIChannel(i + 1);
           resetChannel(i + 1);
         }
@@ -300,7 +306,7 @@ void measureAndRecord(uint8_t channelId, bool logOnSerial)
   if (logOnSerial || ISLOGENABLED)
   {
     Serial.print(F("Current:"));
-    Serial.print(exps.exp[i]->measurement.current,4);
+    Serial.print(exps.exp[i]->measurement.current, 4);
     Serial.print(F(",Voltage:"));
     Serial.print(exps.exp[i]->measurement.voltage);
     Serial.print(F(",Cell Temp.(°C):"));
@@ -466,7 +472,7 @@ void setup()
   {
     ; // wait for serial port to connect. Needed for native USB port only
   }
-  //lcd_init();
+  // lcd_init();
   while (!ads.begin())
   {
     Serial.println(F("ADS initialization failed."));

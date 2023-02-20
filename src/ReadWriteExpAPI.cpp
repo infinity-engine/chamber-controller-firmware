@@ -86,16 +86,26 @@ bool ReadWriteExpAPI::setUpNextSubExp(unsigned char cellId, struct ExperimentPar
         float resVal = doc["resVal"];
         float powVal = doc["powVal"];
         unsigned long timeLimit = doc["timeLimit"];
-        expCopy.mode = mode;
         if (mode == DriveCycle)
         {
             expCopy.total_n_samples = doc["total_n_samples"];
         }
+        unsigned int multiplier = doc["multiplier"];
+        float ambTemp = doc["ambTemp"];
+        if (mode == Hold)
+        {
+            float holdVolt = doc["holdVolt"];
+            expCopy.holdVolt = holdVolt;
+        }
+
+        expCopy.mode = mode;
         expCopy.resVal = resVal;
         expCopy.powVal = powVal;
         expCopy.currentRate = currentRate;
         expCopy.timeLimit = timeLimit;
         mode_curr_exp[cellId] = mode;
+        expCopy.multiplier = multiplier;
+        expCopy.ambTemp = ambTemp;
         isHeaderWritten[cellId] = false; // so that when writing the logs in csv file write the header row
     }
     else

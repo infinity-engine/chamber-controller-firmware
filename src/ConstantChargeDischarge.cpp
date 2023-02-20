@@ -14,8 +14,9 @@ void ConstantChargeDischarge::reset(unsigned char cell_id, unsigned char mode)
         0                   // avgtemperatue
     };
     parameters = {cell_id, 4.2, 3.0, 80, -20};
-    expParamters = {mode, 0, 0, 0, 0, 0, 0, 0, 0.1, 0, 0};
+    expParamters = {mode, 0, 0, 0, 0, 0, 0, 0, 0.1, 0, 0, 1, 25, 4.2};
     chmMeas = {0, 0};
+    curIndex = 1; // point to multiplier,
 }
 
 void ConstantChargeDischarge::setup(bool timeReset)
@@ -49,7 +50,17 @@ void ConstantChargeDischarge::setup(bool timeReset)
     case DriveCycle:
         takeApprActForDischFan(parameters.cellId, true, true);
         break;
+    case Rest:
+        setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
+        setDischargerCurrent(parameters.cellId, 0);
+        break;
+    case Hold:
+        setCellChargeDischarge(parameters.cellId, relay_cell_charge);
+        setDischargerCurrent(parameters.cellId, 0);
+        break;
     default:
+        setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
+        setDischargerCurrent(parameters.cellId, 0);
         break;
     }
 }
@@ -66,7 +77,7 @@ void ConstantChargeDischarge::finish()
     case ConstantCurrentDischarge:
         setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
         setDischargerCurrent(parameters.cellId, 0);
-        takeApprActForDischFan(parameters.cellId,true, false);
+        takeApprActForDischFan(parameters.cellId, true, false);
         break;
     case ConstantResistanceCharge:
         break;
@@ -80,7 +91,19 @@ void ConstantChargeDischarge::finish()
         setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
         setDischargerCurrent(parameters.cellId, 0);
         setChargerCurrent(parameters.cellId, 0);
-        takeApprActForDischFan(parameters.cellId,true, false);
+        takeApprActForDischFan(parameters.cellId, true, false);
+        break;
+    case Rest:
+        setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
+        setDischargerCurrent(parameters.cellId, 0);
+        setChargerCurrent(parameters.cellId, 0);
+        takeApprActForDischFan(parameters.cellId, true, false);
+        break;
+    case Hold:
+        setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
+        setDischargerCurrent(parameters.cellId, 0);
+        setChargerCurrent(parameters.cellId, 0);
+        takeApprActForDischFan(parameters.cellId, true, false);
         break;
     default:
         break;
@@ -90,9 +113,10 @@ void ConstantChargeDischarge::finish()
 uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
 {
     // time consumption - minimum 88ms; max 174 ms
-    measureCellTemperature(parameters.cellId, measurement.temperature);//97ms for 6 sensors and 2 samples
+    float hold_tolerance = 0.1;
+    measureCellTemperature(parameters.cellId, measurement.temperature); // 97ms for 6 sensors and 2 samples
     measurement.avgTemperature = measureAvgCellTemp(parameters.cellId, measurement.temperature);
-    measurement.voltage = measureCellVoltage(parameters.cellId);//39ms for for 5 samples 
+    measurement.voltage = measureCellVoltage(parameters.cellId); // 39ms for for 5 samples
     unsigned char status = EXP_RUNNING;
     unsigned long curTime = millis();
     expParamters.prevTime = curTime;
@@ -148,6 +172,26 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
     case DriveCycle:
         status = perFormDriveCycle(api);
         break;
+    case Rest:
+        // do nothing only just mark measurement,
+        // outside time check will automaticly check it
+        measurement.current = getDischargerCurrent(parameters.cellId);
+        break;
+    case Hold:
+        // assuming the hold period will be to prevent the natural fall of cell voltage
+        // it would be in the charge mode
+        // if you are care about frequent relay change
+        //  then it should be taken care by sample_update_delay from outside where it's gets called.
+        if (measurement.voltage > expParamters.holdVolt + hold_tolerance)
+        {
+            setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
+        }
+        else if (measurement.voltage < expParamters.holdVolt - hold_tolerance)
+        {
+            setCellChargeDischarge(parameters.cellId, relay_cell_charge);
+        }
+        measurement.current = measureCellCurrentACS(parameters.cellId);
+        break;
     default:
         status = EXP_NOT_STARTED;
         break;
@@ -158,13 +202,20 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
         // if time limit is set
         if (curTime - expParamters.startTime >= expParamters.timeLimit * 1000)
         {
-            // set time has reached
-            if (ISLOGENABLED)
+            if (curIndex == expParamters.multiplier)
             {
-                Serial.println(F("Time's up."));
+                // set time has reached
+                if (ISLOGENABLED)
+                {
+                    Serial.println(F("Time's up."));
+                }
+                status = EXP_FINISHED; // completed
             }
-            status = EXP_FINISHED; // completed
-            finish();
+            else
+            {
+                expParamters.timeLimit += expParamters.timeLimit / curIndex; // dynamically extend the time limit for repeating the particular sub experiment
+                curIndex++;
+            }
         }
     }
     if (status != EXP_RUNNING)
@@ -217,7 +268,16 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, int sam
         // Serial.println(expParamters.sampleIndicator);
         if (expParamters.sampleIndicator > expParamters.total_n_samples)
         {
-            status = EXP_FINISHED; // completed
+            if (curIndex == expParamters.multiplier)
+            {
+                status = EXP_FINISHED; // completed
+            }
+            else
+            {
+                expParamters.timeLimit += expParamters.timeLimit / curIndex;
+                curIndex++;
+                expParamters.sampleIndicator = 0; // restarting the current drive cycle again
+            }
         }
         else if (indicator >= DriveCycleBatchSize)
         {

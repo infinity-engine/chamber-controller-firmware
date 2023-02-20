@@ -13,6 +13,7 @@ public:
     struct CellParameters parameters;
     struct ExperimentParameters expParamters;
     struct ChamberMeasurement chmMeas;
+    unsigned int curIndex;
 
     ConstantChargeDischarge();
     void reset(unsigned char cell_id, unsigned char mode = 2);

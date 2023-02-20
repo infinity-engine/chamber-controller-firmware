@@ -39,6 +39,9 @@ struct ExperimentParameters{
     float curToll;//currentTollerence
     unsigned int sampleIndicator;//drive cycle sample indicator 0 for no point, point among [1-total_n_samples]
     unsigned int total_n_samples;//total no. of samples in the drive cycle
+    unsigned int multiplier;//useful if you want to repeat the same sub experiment for multiple times
+    float ambTemp;//only used when isConAmTe is false
+    float holdVolt;//only used when Hold experiment is on progress
     float samples_batch[DriveCycleBatchSize];
 };
 

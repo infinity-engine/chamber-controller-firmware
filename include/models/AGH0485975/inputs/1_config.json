@@ -3,5 +3,8 @@
     "currentRate":1.5,
     "resVal":null,
     "powVal":null,
-    "timeLimit":70
+    "timeLimit":70,
+    "multiplier":1,
+    "ambTemp":null,
+    "holdVolt":null
 }
