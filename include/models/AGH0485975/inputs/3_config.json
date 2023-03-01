@@ -4,6 +4,7 @@
     "resVal":null,
     "powVal":null,
     "timeLimit":0,
+    "voltLimit":null,
     "total_n_samples":45,
     "multiplier":1,
     "ambTemp":null,

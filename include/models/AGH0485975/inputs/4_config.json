@@ -4,6 +4,7 @@
     "resVal":null,
     "powVal":null,
     "timeLimit":15,
+    "voltLimit":null,
     "multiplier":1,
     "ambTemp":null,
     "holdVolt":null
