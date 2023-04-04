@@ -11,37 +11,39 @@ extern FsFile file;
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
+class ConstantChargeDischarge; // forward declaration to avoid circular depedency
+
 class ReadWriteExpAPI
 {
 private:
-    unsigned char mode_curr_exp[N_CELL_CAPABLE];
-    char expName[N_CELL_CAPABLE][MAX_EXP_NAME_LENGTH]; // for output logs file in csv. first row(label).
-    bool isOpDirChecked[N_CELL_CAPABLE];               // to create the output directory
-    unsigned long driveCycleSampleIndicator[N_CELL_CAPABLE];// file pointer in terms of no of character
+    char expName[MAX_EXP_NAME_LENGTH];   // for output logs file in csv. first row(label).
+    bool isOpDirChecked[N_CELL_CAPABLE]; // to create the output directory
+    unsigned long dcPtr[N_CELL_CAPABLE]; // file pointer to point on which drive cycle it is currently was
+    // file pointer in terms of no of character
     // ignore if your experiment isn't a drive cycle or series of current
     unsigned long logSDPointer[N_CELL_CAPABLE];
-public:
-    unsigned char currentSubExpNo[N_CELL_CAPABLE];
-
     bool isHeaderWritten[N_CELL_CAPABLE];
 
+public:
     /**
      * @brief Construct a new Read Write Exp A P I object
      *
      */
     ReadWriteExpAPI();
 
-    void resetAPIChannel(unsigned char cellId, const char *exp_name = "");
+    void reset(char *expNameNew = (char *)"");
 
-    bool setUpNextSubExp(unsigned char cellId, struct ExperimentParameters *expParamters);
+    bool setup(ConstantChargeDischarge *ccd);
 
-    bool fillNextDriveCyclePortion(unsigned char cellId, struct ExperimentParameters *expParamters, uint8_t n_samples = DriveCycleBatchSize);
+    bool setUpNextSubExp(ConstantChargeDischarge *ccd);
 
-    bool logReadings(unsigned char cellId, char *row);
-    
+    bool fillNextDriveCyclePortion(ConstantChargeDischarge *ccd, uint8_t n_samples = DriveCycleBatchSize);
+
+    bool logReadings(ConstantChargeDischarge *ccd, char *row);
+
     void formHead(char *head, uint8_t cellId);
-    
+
     bool cleanDir();
 };
 
-#endif //ReadWriteEXPAPI_H
+#endif // ReadWriteEXPAPI_H

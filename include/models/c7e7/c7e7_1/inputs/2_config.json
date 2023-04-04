@@ -1,0 +1,12 @@
+{
+    "mode": 2,
+    "currentRate": 2,
+    "resVal": null,
+    "powVal": null,
+    "timeLimit": 300,
+    "voltLimit": null,
+    "total_n_samples": null,
+    "multiplier": 1,
+    "ambTemp": 25,
+    "holdVolt": null
+}

@@ -1,0 +1,7 @@
+{
+    "maxTemp": 80,
+    "minTemp": -20,
+    "maxVolt": 4.3,
+    "minVolt": 2.8,
+    "maxCur": 3
+}

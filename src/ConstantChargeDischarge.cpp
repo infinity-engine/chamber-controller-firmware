@@ -1,32 +1,129 @@
 #include "ConstantChargeDischarge.h"
+#include "ReadWriteEXPAPI.h"
 #define LIMIT_TO_BE_CHECK false
 
-ConstantChargeDischarge::ConstantChargeDischarge() {}
+ConstantChargeDischarge::ConstantChargeDischarge()
+{
+    reset();
+}
 
 void ConstantChargeDischarge::reset(unsigned char cell_id, unsigned char mode)
 {
     isFinished = EXP_NOT_STARTED;
     measurement = {
-        parameters.cellId,
         0,                  // current
         0,                  // voltage
         {0, 0, 0, 0, 0, 0}, // temperatures
         0                   // avgtemperatue
     };
-    parameters = {cell_id, 4.2, 3.0, 80, -20};
-    expParamters = {mode, 0, 0, 0, 0, 0, 0, 0, 0.1, 0, 0, 1, 25, 4.2};
+    // cell_id = 0 means no channel
+    parameters = {cell_id, 4.9, 2.0, 80, -20, 5}; // default value need to change according to the cell info from cloud
+    expParamters = {mode, 0, 0, 0, 0, 0, 0, 0, 0.1, 0, 0, 0, 25, 4.2, 4.2, 1000};
     chmMeas = {0, 0};
-    curIndex = 1; // point to multiplier,
+    curRowIndex = 0; // point to multiplier
+    noOfSubExps = 0;
+    nthCurSubExp = 0;
+    curExpStatus = EXP_NOT_STARTED;
+    isExpConfigured = false;
+    isRowConfigured = false;
+    overallMultiplier = 0;
+    currentMultiplierIndex = 0;
+    overallStatus = EXP_NOT_STARTED;
+    isConAmTe = true;
+    ambTemp = 25;
 }
 
-void ConstantChargeDischarge::setup(bool timeReset)
+/**
+ * @brief Only Fetched the Exp Config to the particular Exp Object
+ * it doesn't start the exp.
+ * @param channelId
+ * @return true
+ * @return false
+ */
+bool ConstantChargeDischarge::placeNewSubExp(ReadWriteExpAPI *api)
 {
-    if (timeReset)
+    bool status = true;
+    if (ISLOGENABLED)
     {
-        expParamters.startTime = millis();
-        expParamters.prevTime = expParamters.startTime;
-        expParamters.prevDriveCycleSampleUpdate = expParamters.startTime;
+        Serial.print(F("Placing sub-exp ..."));
+        Serial.println(nthCurSubExp + 1);
     }
+    prepareForNextSubExp();
+    if (api->setUpNextSubExp(this))
+    {
+        // update the exp from the data received and already placed on object property.
+        status = true;
+        isRowConfigured = true;
+        ISLOGENABLED ? Serial.println(F("Done")) : 0;
+    }
+    else
+    {
+        // block the channel
+        status = false;
+        ISLOGENABLED ? Serial.println(F("Failed")) : 0;
+    }
+    return status;
+}
+
+/**
+ * @brief should be called after reading the expconfig from sd card
+ * and after seting isRowConfigured = true
+ * increases the subExpCount by one
+ * set currentRow index = 1
+ * @return true
+ * @return false
+ */
+bool ConstantChargeDischarge::startCurrentSubExp()
+{
+    if (!isRowConfigured)
+    {
+        return false;
+    }
+    curExpStatus = EXP_RUNNING;
+    overallStatus = EXP_RUNNING;
+    setup();
+    if (curRowIndex == 1 && currentMultiplierIndex == 1)
+    {
+        expStartTime = millis();
+    }
+    timeReset();
+    return true;
+}
+
+/**
+ * @brief should be used to prepare to place the next sub exp
+ *
+ * @return true
+ * @return false
+ */
+bool ConstantChargeDischarge::prepareForNextSubExp()
+{
+    isRowConfigured = false;
+    curExpStatus = EXP_NOT_STARTED;
+    curRowIndex = 1;
+    nthCurSubExp += 1;
+    return true;
+}
+
+/**
+ * @brief to reinitiate time for the sub experiment
+ *
+ */
+void ConstantChargeDischarge::timeReset()
+{
+    expParamters.startTime = millis();
+    expParamters.prevTime = expParamters.startTime;
+    expParamters.prevDriveCycleSampleUpdate = expParamters.startTime;
+}
+
+/**
+ * @brief //should be called after placing a new sub
+ * or going on next index of the row
+ *
+ * @param timeResetSubExp
+ */
+void ConstantChargeDischarge::setup()
+{
     // set of instruction when to start a particular experiment
     switch (expParamters.mode)
     {
@@ -49,6 +146,7 @@ void ConstantChargeDischarge::setup(bool timeReset)
         break;
     case DriveCycle:
         takeApprActForDischFan(parameters.cellId, true, true);
+        expParamters.sampleIndicator = 0; // for drivecycle reset back to beginning
         break;
     case Rest:
         setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
@@ -110,6 +208,12 @@ void ConstantChargeDischarge::finish()
     }
 }
 
+/**
+ * @brief Take Measurement
+ * send experiment status == EXP_FINSIHED only when all the row multiplier is finished
+ * @param api
+ * @return uint8_t
+ */
 uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
 {
     // time consumption - minimum 88ms; max 174 ms
@@ -124,10 +228,15 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
     {
     case ConstantCurrentCharge:
         measurement.current = measureCellCurrentACS(parameters.cellId);
+        if (expParamters.voltLimit != 0 && measurement.voltage > expParamters.voltLimit)
+        {
+            Serial.println(F("Voltage limit achieved."));
+            status = EXP_FINISHED;
+        }
         if ((measurement.voltage > parameters.maxVoltage || measurement.voltage < parameters.minVoltage) && LIMIT_TO_BE_CHECK)
         {
-            Serial.println(F("Voltage limit crossed"));
-            status = EXP_FINISHED;
+            Serial.println(F("Voltage limit crossed."));
+            status = EXP_STOPPED;
         }
         if ((measurement.avgTemperature > parameters.maxTemp || measurement.avgTemperature < parameters.minTemp) && LIMIT_TO_BE_CHECK)
         {
@@ -137,11 +246,16 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
         if ((abs(abs(measurement.current) - abs(expParamters.currentRate)) > expParamters.curToll) && LIMIT_TO_BE_CHECK)
         {
             Serial.println(F("Re-initialize ChargeDischarge"));
-            setup(false);
+            setup();
         }
         break;
     case ConstantCurrentDischarge:
         measurement.current = getDischargerCurrent(parameters.cellId);
+        if (expParamters.voltLimit != 0 && measurement.voltage < expParamters.voltLimit)
+        {
+            Serial.println(F("Voltage limit achieved."));
+            status = EXP_FINISHED;
+        }
         if ((measurement.voltage > parameters.maxVoltage || measurement.voltage < parameters.minVoltage) && LIMIT_TO_BE_CHECK)
         {
             // even though you don't want to perform experiment on voltage limit
@@ -158,7 +272,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
         if ((abs(abs(measurement.current) - abs(expParamters.currentRate)) > expParamters.curToll) && LIMIT_TO_BE_CHECK)
         {
             Serial.println(F("Re-initialize ChargeDischarge"));
-            setup(false);
+            setup();
         }
         break;
     case ConstantResistanceCharge:
@@ -202,39 +316,48 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
         // if time limit is set
         if (curTime - expParamters.startTime >= expParamters.timeLimit * 1000)
         {
-            if (curIndex == expParamters.multiplier)
+            // set time has reached
+            if (ISLOGENABLED)
             {
-                // set time has reached
-                if (ISLOGENABLED)
-                {
-                    Serial.println(F("Time's up."));
-                }
+                Serial.println(F("Time's up for this row index."));
+            }
+            if (curRowIndex == expParamters.multiplier)
+            {
                 status = EXP_FINISHED; // completed
             }
             else
             {
-                expParamters.timeLimit += expParamters.timeLimit / curIndex; // dynamically extend the time limit for repeating the particular sub experiment
-                curIndex++;
+                curRowIndex += 1;
+                timeReset();
             }
         }
     }
     if (status != EXP_RUNNING)
     {
+        overallStatus = status;
         finish();
     }
     return status;
 }
 
-uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, int sampleTime, unsigned long curTime)
+/**
+ * @brief
+ *
+ * @param api
+ * @param sampleTime defines time delay between each sample present in the drivecycle
+ * @param curTime
+ * @return uint8_t
+ */
+uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigned long curTime)
 {
     unsigned status = EXP_RUNNING;
-    if (curTime > expParamters.prevDriveCycleSampleUpdate + sampleTime)
+    if (curTime > expParamters.prevDriveCycleSampleUpdate + expParamters.sampleTime)
     {
         // log_(&expParamters);
         if (expParamters.sampleIndicator == 0)
         {
             // just for the first time
-            if (api.fillNextDriveCyclePortion(parameters.cellId, &expParamters))
+            if (api.fillNextDriveCyclePortion(this))
             {
                 expParamters.sampleIndicator += 1;
             }
@@ -268,16 +391,8 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, int sam
         // Serial.println(expParamters.sampleIndicator);
         if (expParamters.sampleIndicator > expParamters.total_n_samples)
         {
-            if (curIndex == expParamters.multiplier)
-            {
-                status = EXP_FINISHED; // completed
-            }
-            else
-            {
-                expParamters.timeLimit += expParamters.timeLimit / curIndex;
-                curIndex++;
-                expParamters.sampleIndicator = 0; // restarting the current drive cycle again
-            }
+            expParamters.sampleIndicator = 0; // roll back to start
+            // next row multiplier index will only start when timelimit is hit
         }
         else if (indicator >= DriveCycleBatchSize)
         {
@@ -286,7 +401,7 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, int sam
             {
                 Serial.println(F("Filling next set of samples."));
             }
-            if (!api.fillNextDriveCyclePortion(parameters.cellId, &expParamters))
+            if (!api.fillNextDriveCyclePortion(this))
             {
                 // some error occur so stop
                 status = EXP_STOPPED;

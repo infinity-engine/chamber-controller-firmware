@@ -5,8 +5,8 @@
 #include "config_atmega.h"
 #include <SdFat.h>
 
-struct CellMeasurement{
-    unsigned char cellId;
+struct CellMeasurement
+{
     float current;
     float voltage;
     float temperature[maxNoOfTempSensorPerCell];
@@ -19,34 +19,39 @@ struct ChamberMeasurement
     float avgTemp;
 };
 
-struct CellParameters{
-    unsigned char cellId;
+struct CellParameters
+{
+    unsigned char cellId; // also channelId starts from 1,2,3...
     float maxVoltage;
     float minVoltage;
     float maxTemp;
     float minTemp;
+    float maxCurrent;
 };
 
-struct ExperimentParameters{
+struct ExperimentParameters
+{
     unsigned char mode; // 1 - "ConstantCurrentCharge"| 2 - "ConstantCurrentDischarge"| 3 - "ConstantResistanceCharge"| 4 - "ConstantResistanceDischarge"|5 - "ConstantPowerCharge"| 6- "ConstantPowerDischarge";
-    float currentRate;//absolute value for both charging and discharging
+    float currentRate;  // absolute value for both charging and discharging
     float resVal;
     float powVal;
     unsigned long timeLimit;
     unsigned long startTime;
-    unsigned long prevTime;// last instant on which measurement sdata has been updated
-    unsigned long prevDriveCycleSampleUpdate;// last instant on which the drive cycle value has been fetched
-    float curToll;//currentTollerence
-    unsigned int sampleIndicator;//drive cycle sample indicator 0 for no point, point among [1-total_n_samples]
-    unsigned int total_n_samples;//total no. of samples in the drive cycle
-    unsigned int multiplier;//useful if you want to repeat the same sub experiment for multiple times
-    float ambTemp;//only used when isConAmTe is false
-    float holdVolt;//only used when Hold experiment is on progress
+    unsigned long prevTime;                   // last instant on which measurement sdata has been updated
+    unsigned long prevDriveCycleSampleUpdate; // last instant of time on which the drive cycle value has been fetched and set
+    float curToll;                            // currentTollerence
+    unsigned int sampleIndicator;             // drive cycle sample indicator 0 for no point, point among [1-total_n_samples]
+    unsigned int total_n_samples;             // total no. of samples in the drive cycle
+    unsigned int multiplier;                  // useful if you want to repeat the same sub experiment for multiple times
+    float ambTemp;                            // only used when isConAmTe is false
+    float holdVolt;                           // only used when Hold experiment is on progress
+    float voltLimit;                          // if until specified
+    int sampleTime;                           // refers to drivecylce sample delay in ms
     float samples_batch[DriveCycleBatchSize];
 };
 
 void channelTheMux(const bool address[]);
-float * measureCellTemperature(unsigned char cell_id,float *temps);
+float *measureCellTemperature(unsigned char cell_id, float *temps);
 float measureFromADS(unsigned char channel_id);
 float measureCellVoltage(unsigned char cell_id);
 float measureCellCurrentACS(unsigned char cell_id);
@@ -66,18 +71,14 @@ float getCurrentACS(unsigned char discharger_id);
 float myMap(float x, float in_min, float in_max, float out_min, float out_max);
 float measureAvgCellTemp(unsigned char cell_id, float *temps = NULL);
 void pinInit();
-void resetChannel(unsigned char channelId,bool hardReset = true);
-void reserveChannel(unsigned char channelId);
 void runExp();
 void fillExp();
-void initExp();
 bool placeNewSubExp(uint8_t channelId);
-void measureAndRecord(uint8_t channelId,bool logOnSerial = false);
+void measureAndRecord(uint8_t channelId, bool logOnSerial = false);
 void updateProgressBar(unsigned long count, unsigned long totalCount, int lineToPrintOn);
 uint16_t getFreeSram();
 void log_(struct ExperimentParameters *exp);
 void debug();
 void dumpFile();
 
-
-#endif //PROTOTYPE
+#endif // PROTOTYPE

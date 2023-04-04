@@ -1,4 +1,5 @@
 #include "ReadWriteEXPAPI.h"
+#include "ConstantChargeDischarge.h"
 
 /**
  * @brief Construct a new Read Write Exp A P I object
@@ -6,23 +7,85 @@
  */
 ReadWriteExpAPI::ReadWriteExpAPI()
 {
-    for (unsigned char i = 0; i < N_CELL_CAPABLE; i++)
+    reset();
+}
+
+void ReadWriteExpAPI::reset(char *expNameNew)
+{
+    strcpy(expName, (const char *)expNameNew);
+    for (uint8_t cellId = 0; cellId < N_CELL_CAPABLE; cellId++)
     {
-        resetAPIChannel(i);
+        isHeaderWritten[cellId] = false;
+        isOpDirChecked[cellId] = false;
+        logSDPointer[cellId] = 0;
+        dcPtr[cellId] = 0;
     }
 }
 
-void ReadWriteExpAPI::resetAPIChannel(unsigned char cellId, const char *exp_name)
+/**
+ * @brief Set the experiment overall setup like cyclic count,cell paramters etc
+ *
+ * @param ccd
+ * @return true
+ * @return false
+ */
+bool ReadWriteExpAPI::setup(ConstantChargeDischarge *ccd)
 {
-    // program is stucking after calling of this function
-    cellId--;
-    currentSubExpNo[cellId] = 0;
-    mode_curr_exp[cellId] = 0;
-    driveCycleSampleIndicator[cellId] = 0;
-    strcpy(expName[cellId], exp_name);
-    isHeaderWritten[cellId] = true;
-    isOpDirChecked[cellId] = false;
-    logSDPointer[cellId] = 0;
+    if (strlen(expName) == 0)
+    {
+        return false;
+    }
+    StaticJsonDocument<300> doc;
+    String configPath = String(expName) + String(expName) + "_" + ccd->parameters.cellId;
+    configPath += "/inputs";
+    // set info for the cell
+
+    sd.chdir("/");
+    if (sd.exists(configPath + "/config.json"))
+    {
+        // update the celll info
+        file = sd.open(configPath + "/config.json");
+        DeserializationError error = deserializeJson(doc, file);
+        if (error)
+        {
+            Serial.print(F("deserializeJson() failed: "));
+            Serial.println(error.f_str());
+            file.close();
+            return false;
+        }
+        else
+        {
+            ccd->parameters.cellId = doc["channelNumber"];
+            ccd->overallMultiplier = doc["overallMultiplier"];
+            ccd->isConAmTe = doc["isConAmTe"];
+            ccd->ambTemp = doc["ambTemp"];
+            ccd->noOfSubExps = doc["noOfSubExp"];
+        }
+    }
+    file.close();
+    sd.chdir("/");
+    if (sd.exists(configPath + "/cell_info.json"))
+    {
+        // update the celll info
+        file = sd.open(configPath + "/cell_info.json");
+        DeserializationError error = deserializeJson(doc, file);
+        if (error)
+        {
+            Serial.print(F("deserializeJson() failed: "));
+            Serial.println(error.f_str());
+        }
+        else
+        {
+            ccd->parameters.maxTemp = doc["maxTemp"];
+            ccd->parameters.minTemp = doc["minTemp"];
+            ccd->parameters.maxVoltage = doc["maxVolt"];
+            ccd->parameters.minVoltage = doc["minVolt"];
+            ccd->parameters.maxCurrent = doc["maxCur"];
+        }
+    }
+    file.close();
+
+    return true;
 }
 
 /**
@@ -33,43 +96,30 @@ void ReadWriteExpAPI::resetAPIChannel(unsigned char cellId, const char *exp_name
  * @return true on successful new sub exp placing
  * @return false otherwise
  */
-bool ReadWriteExpAPI::setUpNextSubExp(unsigned char cellId, struct ExperimentParameters *expParamters)
+bool ReadWriteExpAPI::setUpNextSubExp(ConstantChargeDischarge *ccd)
 {
-    struct ExperimentParameters expCopy = *expParamters; // make a local copy and work on that local copy
-    cellId--;
-    if (strlen(expName[cellId]) == 0)
-    {
-        Serial.println(F("Exp name not configured"));
-        return false;
-    }
-    StaticJsonDocument<300> doc;
+    StaticJsonDocument<400> doc;
     sd.chdir("/");
-    if (sd.exists(expName[cellId]))
+    String config = String(expName) + "/" + String(expName) + "_" + ccd->parameters.cellId + "/inputs/" + ccd->nthCurSubExp + "_config.json";
+    Serial.println(config);
+    if (sd.exists(config))
     {
         if (ISLOGENABLED)
         {
-            Serial.print(expName[cellId]);
-            Serial.println(F(" -> config exists."));
+            Serial.print(expName);
+            Serial.print(F(", CH "));
+            Serial.print(ccd->parameters.cellId);
+            Serial.println(F(", config exists."));
         }
-        currentSubExpNo[cellId]++;
     }
     else
     {
-        Serial.print(expName[cellId]);
-        Serial.println(F(" -> config does not exist."));
+        Serial.print(expName);
+        Serial.print(F(", CH "));
+        Serial.print(ccd->parameters.cellId);
+        Serial.println(F(", config doesn't exist."));
         return false;
     }
-
-    char config[MAX_EXP_NAME_LENGTH + 10] = "";
-    strcat(config, (const char *)expName[cellId]);
-    strcat(config, "/inputs");
-    sd.chdir(config);
-    const char end[20] = "_config.json";
-    char buff[4] = ""; // storage to convert sub experiment no. to char array
-    itoa(currentSubExpNo[cellId], buff, 10);
-    strcpy(config, buff);
-    strcat(config, end);
-    // Serial.println(config);
     file = sd.open(config, FILE_READ);
     if (file)
     {
@@ -88,25 +138,35 @@ bool ReadWriteExpAPI::setUpNextSubExp(unsigned char cellId, struct ExperimentPar
         unsigned long timeLimit = doc["timeLimit"];
         if (mode == DriveCycle)
         {
-            expCopy.total_n_samples = doc["total_n_samples"];
+            ccd->expParamters.total_n_samples = doc["total_n_samples"];
         }
         unsigned int multiplier = doc["multiplier"];
         float ambTemp = doc["ambTemp"];
         if (mode == Hold)
         {
             float holdVolt = doc["holdVolt"];
-            expCopy.holdVolt = holdVolt;
+            ccd->expParamters.holdVolt = holdVolt;
         }
+        if (mode == DriveCycle)
+        {
+            int sampleTime = doc["sampleTime"]; // in ms
+            if (sampleTime == 0)
+            {
+                sampleTime = 1000; // default value
+            }
+            ccd->expParamters.sampleTime = sampleTime;
+        }
+        float voltLimet = doc["voltLimit"];
 
-        expCopy.mode = mode;
-        expCopy.resVal = resVal;
-        expCopy.powVal = powVal;
-        expCopy.currentRate = currentRate;
-        expCopy.timeLimit = timeLimit;
-        mode_curr_exp[cellId] = mode;
-        expCopy.multiplier = multiplier;
-        expCopy.ambTemp = ambTemp;
-        isHeaderWritten[cellId] = false; // so that when writing the logs in csv file write the header row
+        ccd->expParamters.voltLimit = voltLimet;
+        ccd->expParamters.mode = mode;
+        ccd->expParamters.resVal = resVal;
+        ccd->expParamters.powVal = powVal;
+        ccd->expParamters.currentRate = currentRate;
+        ccd->expParamters.timeLimit = timeLimit;
+        ccd->expParamters.multiplier = multiplier;
+        ccd->expParamters.ambTemp = ambTemp;
+        isHeaderWritten[ccd->parameters.cellId - 1] = false; // so that when writing the logs in csv file write the header row
     }
     else
     {
@@ -115,52 +175,53 @@ bool ReadWriteExpAPI::setUpNextSubExp(unsigned char cellId, struct ExperimentPar
         return false;
     }
     file.close();
-    *expParamters = expCopy; // assign the local copy back to the original reference
     return true;
 }
 
-bool ReadWriteExpAPI::fillNextDriveCyclePortion(unsigned char cellId, struct ExperimentParameters *expParamters, uint8_t n_samples)
+bool ReadWriteExpAPI::fillNextDriveCyclePortion(ConstantChargeDischarge *ccd, uint8_t n_samples)
 {
-    // log_(expParamters);
-    struct ExperimentParameters expCopy = *expParamters; // make a local copy of the structure
-    cellId--;
-    // read the next set of current for the drive cycle
-    // copy all the value in to the received pointer
-    if (mode_curr_exp[cellId] != DriveCycle)
+    uint8_t cellIndex = ccd->parameters.cellId - 1;
+    if (ccd->expParamters.mode != DriveCycle)
     {
         // only valid for drive cycle exp.
         return false;
     }
     sd.chdir("/");
-    char config[MAX_EXP_NAME_LENGTH + 10] = "";
-    strcpy(config, (const char *)expName[cellId]);
-    strcat(config, "/inputs");
-    sd.chdir(config);
-    const char end[20] = "_drivecycle.csv";
-    char buff[4]; // storage to convert sub experiment no. to char array
-    itoa(currentSubExpNo[cellId], buff, 10);
-    strcpy(config, buff);
-    strcat(config, end);
-    // Serial.println(config);
+    String exNameStr = String(expName);
+    String config = "";
+    config += exNameStr + "/" + exNameStr + "_" + ccd->parameters.cellId + "/inputs/" + ccd->nthCurSubExp + "_driveCycle.json";
+    Serial.println(config);
     file = sd.open(config, FILE_READ); // warning!! with this line there is a possible chance of heap and stack overlap because of memory overflow
 
     if (file)
     {
-        if (file.seek(driveCycleSampleIndicator[cellId]))
+        if (file.seek(dcPtr[cellIndex]))
         {
             for (uint8_t i = 0; i < n_samples; i++)
             {
                 // clearing the previous value in case end
-                expCopy.samples_batch[i] = 0;
+                ccd->expParamters.samples_batch[i] = 0;
             }
-            for (uint8_t i = 0; i < n_samples and file.available(); i++)
+            if (!file.available())
+            {
+                // roll back to begininig
+                dcPtr[cellIndex] = 0;
+                file.seek(0);
+            }
+            for (uint8_t i = 0; i < n_samples; i++)
             {
                 float data = file.readStringUntil('\n').toFloat();
                 // Serial.println(data, 4);
-                expCopy.samples_batch[i] = data;
+                ccd->expParamters.samples_batch[i] = data;
+                if (!file.available())
+                {
+                    // roll back to begininig
+                    dcPtr[cellIndex] = 0;
+                    file.seek(0);
+                }
             }
         }
-        driveCycleSampleIndicator[cellId] = file.position(); // get the postion of next byte from where it to be read or write
+        dcPtr[cellIndex] = file.position(); // get the postion of next byte from where it to be read or write
     }
     else
     {
@@ -169,30 +230,19 @@ bool ReadWriteExpAPI::fillNextDriveCyclePortion(unsigned char cellId, struct Exp
         return false;
     }
     file.close();
-    *expParamters = expCopy; // assign the local copy back to the origin
-    // for (uint8_t i = 0; i < 20; i++)
-    // {
-    //     Serial.print(expParamters->samples_batch[i]);
-    //     Serial.print(" ");
-    // }
-    // Serial.println();
-    // log_(expParamters);
     return true;
 }
 
-bool ReadWriteExpAPI::logReadings(unsigned char cellId, char *row)
+bool ReadWriteExpAPI::logReadings(ConstantChargeDischarge *ccd, char *row)
 {
     // on an average takes 15ms
-    cellId--;
-    // Serial.print(F("Available RAM "));
-    // Serial.print(freeMemory());
-    // Serial.println(F("Bytes"));
+    uint8_t channelId = ccd->parameters.cellId;
     sd.chdir("/");
-    char path[MAX_EXP_NAME_LENGTH + 10] = "";
-    sprintf(path, "%s/outputs", expName[cellId]);
-    // Serial.println(path);
+    char path[2 * MAX_EXP_NAME_LENGTH + 10] = "";
+    sprintf(path, "%s/%s_%d/outputs", expName, expName, channelId);
+    Serial.println(path);
 
-    if (!isOpDirChecked[cellId])
+    if (!isOpDirChecked[channelId - 1])
     {
         // if it is the first sub experiment of the series
         if (sd.exists(path))
@@ -218,7 +268,7 @@ bool ReadWriteExpAPI::logReadings(unsigned char cellId, char *row)
             Serial.println(F("O/P dir make failed"));
             return false;
         }
-        isOpDirChecked[cellId] = true;
+        isOpDirChecked[channelId - 1] = true;
     }
 
     sd.chdir("/");
@@ -229,29 +279,42 @@ bool ReadWriteExpAPI::logReadings(unsigned char cellId, char *row)
         return false;
     }
 
-    char config[15] = "";
-    sprintf(config, "%d_logs.csv", currentSubExpNo[cellId]);
+    if (!sd.exists("cycle_" + ccd->currentMultiplierIndex))
+    {
+        if (!sd.mkdir("cycle_" + ccd->currentMultiplierIndex))
+        {
+            Serial.println(F("Cy. Dir make failed."));
+            return false;
+        }
+    }
+    if (!sd.chdir("cycle_" + ccd->currentMultiplierIndex))
+    {
+        Serial.println(F("Cy. Dir change failed."));
+        return false;
+    }
+    char config[25] = "";
+    sprintf(config, "%d_logs.csv", ccd->nthCurSubExp);
     // Serial.println(config);
 
     file = sd.open(config, O_WRONLY | O_CREAT);
     if (file)
     {
-        if (!isHeaderWritten[cellId])
+        if (!isHeaderWritten[channelId - 1])
         {
             // write the header row first
             char head[100] = "";
-            formHead(head, cellId + 1);
+            formHead(head, channelId);
 
             // Serial.println(head);
             file.println(head);
-            logSDPointer[cellId] = file.position();
-            isHeaderWritten[cellId] = true;
+            logSDPointer[channelId - 1] = file.position();
+            isHeaderWritten[channelId - 1] = true;
         }
         // Serial.println(row);
-        if (file.seek(logSDPointer[cellId]))
+        if (file.seek(logSDPointer[channelId - 1]))
         {
             file.println(row);
-            logSDPointer[cellId] = file.position();
+            logSDPointer[channelId - 1] = file.position();
         }
     }
     else
@@ -265,11 +328,18 @@ bool ReadWriteExpAPI::logReadings(unsigned char cellId, char *row)
     return true;
 }
 
+/**
+ * @brief formate the head for the output file for SD card
+ *
+ * @param head
+ * @param cellId
+ */
 void ReadWriteExpAPI::formHead(char *head, uint8_t cellId)
 {
     cellId--;
     const char *temp = "Time,Volt,Current";
     strcat(head, temp);
+    strcat(head, ",Ch_T,Ch_H");
     for (uint8_t i = 0; i < no_of_temp_sen_connected_cell[cellId]; i++)
     {
         strcat(head, ",T");
@@ -277,9 +347,15 @@ void ReadWriteExpAPI::formHead(char *head, uint8_t cellId)
         itoa(i + 1, buff, 10);
         strcat(head, buff);
     }
-    strcat(head, ",Ch_T,Ch_H");
 }
 
+/**
+ * @brief clean a file directory
+ * given that you already opened a filed and then call this method
+ *
+ * @return true
+ * @return false
+ */
 bool ReadWriteExpAPI::cleanDir()
 {
 

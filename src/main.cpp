@@ -110,50 +110,16 @@ byte five[] = {
 
 DHT dht[] = {{DHTPIN_1, DHTTYPE_1}, {DHTPIN_2, DHTTYPE_2}, {DHTPIN_3, DHTTYPE_3}, {DHTPIN_4, DHTTYPE_4}};
 
-struct myStructure
-{
-  ConstantChargeDischarge *exp[N_CELL_CAPABLE]; // store the object for any sub experiment per channel
-  unsigned int noOfSubExps[N_CELL_CAPABLE];     // total no of sub-exp to be run for this particular channel
-  unsigned int nthCurExp[N_CELL_CAPABLE];       // points to what no of experiment the current channel is running
-  unsigned char curExpStatus[N_CELL_CAPABLE];   // corresponds to each cell configured; -> sub-exp
-  bool isFreeForNewExps[N_CELL_CAPABLE];        // corresponds to each cell configured, also point to last setof exps
-  bool isLastExp[N_CELL_CAPABLE];               // is the current sub experiment is the last of the set of subexperiment
-  bool isConAmTe[N_CELL_CAPABLE];               // is consistant ambient temperature requred for all the sub experiments
-  // it the temperature varies in between a sub experiment then multiple channel experiment is logically not possible.
-  float ambTemp[N_CELL_CAPABLE];
-  unsigned int overallMultiplier[N_CELL_CAPABLE];
-};
-struct myStructure exps; // 54 bytes, exp only holds the ConstantChargeDischarge's address
+ConstantChargeDischarge exps[N_CELL_CAPABLE]; // 177*6 = 1062 bytes global space
 
 void formRow(char *row, ConstantChargeDischarge *exp);
-
-ConstantChargeDischarge expStore[N_CELL_CAPABLE]; // 177*6 = 1062 bytes global space
 
 // allocate store for the objects in global space
 
 ReadWriteExpAPI api; // 177 bytes
 
 /**
- * @brief open all the channel for set of experiments
- *
- */
-void initExp()
-{
-  exps = {
-      {NULL, NULL, NULL, NULL, NULL, NULL},                                                                   // exp
-      {EXP_NOT_STARTED, EXP_NOT_STARTED, EXP_NOT_STARTED, EXP_NOT_STARTED, EXP_NOT_STARTED, EXP_NOT_STARTED}, // cur exp status
-      {false, false, false, false, false, false},                                                             // is free for new exps
-      {true, true, true, true, true, true},                                                                   // is last exp
-      {0, 0, 0, 0, 0, 0},                                                                                     // no of sub exps
-      {0, 0, 0, 0, 0, 0}};                                                                                    // nth cur exp
-  for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
-  {
-    expStore[i].reset(i + 1);
-  }
-}
-
-/**
- * @brief get new set of sub experiment from an api call store them in sd card;
+ * @brief get new set of sub experiment, for all the channels from an api call store them in sd card;
  * create a new instance of the first sub exp;
  * store the exp name in the readwrite api
  * exps.exp[i] = instance;
@@ -163,61 +129,6 @@ void initExp()
  */
 void fillExp()
 {
-  for (unsigned char i = 0; i < N_CELL_CAPABLE; i++)
-  {
-    if (exps.isFreeForNewExps[i])
-    {
-      if (false)
-      {
-        resetChannel(i + 1);
-        // get the exp name and no of sub exp and channel id to place the experiment
-        // assuming those experiment details are already written in the sd card
-        // let say from esp you get the new experiment name to be XXXXXXX
-        // so you place the exp name on the api
-
-        // api.resetAPIChannel(i+1,"XXXXXXX");
-        // exps.noOfSubExps[i] = set it
-
-        reserveChannel(i + 1);
-        // making the sub-exp ->0 and status 1, so that this will be catched by
-        //  runExp condition "if (exps.curExpStatus[i] == 1)"
-        //  rest of the taken care of by that, like updating the exp parameters and all
-        exps.nthCurExp[i] = 0;
-        exps.curExpStatus[i] = 1;
-      }
-    }
-  }
-}
-
-/**
- * @brief reserve the channel so that no new set of experiment can not be placed on it
- * used when placing new set of experiment on it
- * @param channelId 1-Max channel allowed
- */
-void reserveChannel(unsigned char channelId)
-{
-  channelId--;
-  exps.curExpStatus[channelId] = EXP_RUNNING;
-  exps.isFreeForNewExps[channelId] = false;
-}
-
-/**
- * @brief reset the channel so that it becomes free to place new experiment.
- * If somehow the experiment is stopped in between you have to reset it before you can place new experiment on it.
- * @param channelId 1-max channel allowed
- */
-void resetChannel(unsigned char channelId, bool hardReset)
-{
-  channelId--;
-  if (hardReset)
-  {
-    exps.isFreeForNewExps[channelId] = true; // on setting it true, fillExp will then fetch for new available exp
-    exps.isLastExp[channelId] = false;
-    exps.noOfSubExps[channelId] = 0;
-    exps.nthCurExp[channelId] = 0;
-  }
-  exps.curExpStatus[channelId] = EXP_NOT_STARTED;
-  exps.exp[channelId] = NULL;
 }
 
 /**
@@ -227,61 +138,65 @@ void resetChannel(unsigned char channelId, bool hardReset)
  */
 void runExp()
 {
-  // time for each channel takes around 148ms while constant - discharging-experiment
-  //
-  // 260ms for charging experiment
   for (unsigned char i = 0; i < N_CELL_CAPABLE; i++)
   {
-    if (exps.exp[i] != NULL)
+    // if any exp object is found for this channel
+    if (exps[i].overallStatus == EXP_RUNNING)
     {
-      if (exps.curExpStatus[i] == EXP_RUNNING && exps.isFreeForNewExps[i] == false)
+      // if exp is on running status
+      if (exps[i].curExpStatus == EXP_RUNNING)
       {
-        // there is an sub-exp placed, which is running, and the channel is occupied
-        if (exps.exp[i]->expParamters.mode == DriveCycle)
+        // there is an sub-exp placed, which is running
+        if (exps[i].expParamters.mode == DriveCycle)
         {
           // frequent update is only necessary in drive cycle mode
           measureAndRecord(i + 1, false);
         }
-        else if (millis() - exps.exp[i]->expParamters.prevTime > sample_update_delay)
+        else if (millis() - exps[i].expParamters.prevTime > sample_update_delay)
         {
           measureAndRecord(i + 1, false);
         }
       }
 
       // this step will be triggered on completion of previous sub exp as well as on the starting of new set of exp
-      if (exps.curExpStatus[i] == EXP_FINISHED)
+      if (exps[i].curExpStatus == EXP_FINISHED)
       {
-        // if the current sub-experiment is in finished status
+        // if the current sub-experiment is in finished status with all the row multiplier completed
         if (ISLOGENABLED)
         {
-          Serial.print(F("Sub exp. "));
-          Serial.print(exps.nthCurExp[i]);
+          Serial.print(F("Sub exp "));
+          Serial.print(exps[i].nthCurSubExp);
           Serial.println(F(" finished."));
         }
         // check whther it was the last experiment among all the set of experiment for the particular cell to run
-        if (exps.isLastExp[i])
+        if (exps[i].currentMultiplierIndex == exps[i].overallMultiplier && exps[i].nthCurSubExp == exps[i].noOfSubExps)
         {
-          // all set of sub exps for the particular channel has finished.
-          // add some finishing touches
-          Serial.print(F("All sub-exps are finished for channel "));
+          // on it's last cycle
+          Serial.print(F("All cycle has been completed; CH - "));
           Serial.println(i + 1);
-          api.resetAPIChannel(i + 1);
-          resetChannel(i + 1);
+          exps[i].overallStatus = EXP_FINISHED;
+          continue;
+        }
+        else if (exps[i].nthCurSubExp == exps[i].noOfSubExps)
+        {
+          // not on its last cycle
+          Serial.print(F("This cycle has been completed; CH - "));
+          Serial.println(i + 1);
+          exps[i].nthCurSubExp = 0;
+          exps[i].currentMultiplierIndex += 1;
+        }
+        if (exps[i].placeNewSubExp(&api))
+        {
+          exps[i].startCurrentSubExp(); // start and reserve the channel
         }
         else
         {
-          resetChannel(i + 1, false);
-          if (placeNewSubExp(i + 1))
-          {
-            reserveChannel(i + 1); // start and reserve the channel
-          }
-          else
-          {
-            exps.curExpStatus[i] = EXP_STOPPED;
-          }
+          exps[i].curExpStatus = EXP_STOPPED;
+          exps[i].overallStatus = EXP_STOPPED;
+          // insert logic to send the status to cloud
         }
       }
-      if (exps.curExpStatus[i] == EXP_STOPPED)
+      if (exps[i].curExpStatus == EXP_STOPPED)
       {
         // if any sub exp has stopped.
       }
@@ -294,79 +209,43 @@ void measureAndRecord(uint8_t channelId, bool logOnSerial)
   // get the details and do what you wanna do with it and update curExpStatus if required
   // potential sd card calls
   uint8_t i = channelId - 1;
-  exps.curExpStatus[i] = exps.exp[i]->performAction(api);
+  exps[i].performAction(api);
   char row[150] = "";
-  formRow(row, exps.exp[i]);
-  if (!api.logReadings(i + 1, row))
+  formRow(row, &exps[i]);
+  if (!api.logReadings(&exps[i], row))
   {
     Serial.println(F("Log data failed"));
-    exps.curExpStatus[i] = EXP_STOPPED;
+    exps[i].curExpStatus = EXP_STOPPED;
+    exps[i].overallStatus = EXP_STOPPED;
     return;
   }
   if (logOnSerial || ISLOGENABLED)
   {
     Serial.print(F("Current:"));
-    Serial.print(exps.exp[i]->measurement.current, 4);
+    Serial.print(exps[i].measurement.current, 4);
     Serial.print(F(",Voltage:"));
-    Serial.print(exps.exp[i]->measurement.voltage);
+    Serial.print(exps[i].measurement.voltage);
     Serial.print(F(",Cell Temp.(°C):"));
-    Serial.print(exps.exp[i]->measurement.avgTemperature);
+    Serial.print(exps[i].measurement.avgTemperature);
     Serial.print(F(",Chamber Humidity(%):"));
-    Serial.print(exps.exp[i]->chmMeas.avgHum);
+    Serial.print(exps[i].chmMeas.avgHum);
     Serial.print(F(",Chamber Temp.(°C):"));
-    Serial.println(exps.exp[i]->chmMeas.avgTemp);
+    Serial.println(exps[i].chmMeas.avgTemp);
   }
-}
-
-bool placeNewSubExp(uint8_t channelId)
-{
-  bool status = true;
-  uint8_t i = channelId - 1;
-  if (ISLOGENABLED)
-  {
-    Serial.print(F("Placing sub-exp "));
-    Serial.println(exps.nthCurExp[i] + 1);
-  }
-  exps.nthCurExp[i] += 1; // increment the sub exp count
-  if (exps.nthCurExp[i] == exps.noOfSubExps[i])
-  {
-    exps.isLastExp[i] = true;
-  }
-  expStore[i].reset(i + 1);
-  exps.exp[i] = &expStore[i]; // 177 bytes
-  if (api.setUpNextSubExp(channelId, &exps.exp[i]->expParamters))
-  {
-    // update the exp from the data received and already placed on object property.
-    exps.exp[i]->setup();
-    status = true;
-  }
-  else
-  {
-    // block the channel
-    status = false;
-    Serial.println(F("Stopped"));
-  }
-  return status;
 }
 
 void test()
 {
-  // on channel 1
-  resetChannel(1);
-  api.resetAPIChannel(1, "AGH0485975");
-  if (placeNewSubExp(1))
+  api.reset((char *)"c7e7"); // set the expname
+  exps[0] = ConstantChargeDischarge();
+  if (api.setup(&exps[0]) && exps[0].placeNewSubExp(&api))
   {
-    exps.noOfSubExps[0] = 4; // this one has to updated from all exp together, you should fetch it from sd card
-    reserveChannel(1);       // start and reserve the channel
-  }
-  else
-  {
-    exps.curExpStatus[0] = EXP_NOT_STARTED;
+    exps[0].startCurrentSubExp(); // start and reserve the channel
   }
 
   // // on channel 2
   // resetChannel(2);
-  // api.resetAPIChannel(2, "BGH0485978");
+  // api.resetAPIChannel(2);
   // if (placeNewSubExp(2))
   // {
   //   exps.noOfSubExps[1] = 4; // this one has to updated from all exp together, you should fetch it from sd card
@@ -379,7 +258,7 @@ void test()
 
   // // on channel 3
   // resetChannel(3);
-  // api.resetAPIChannel(3, "DF0145BG78");
+  // api.resetAPIChannel(3);
   // if (placeNewSubExp(3))
   // {
   //   exps.noOfSubExps[2] = 2; // this one has to updated from all exp together, you should fetch it from sd card
@@ -392,7 +271,7 @@ void test()
 
   // // on channel 4
   // resetChannel(4);
-  // api.resetAPIChannel(4, "EGH0485978");
+  // api.resetAPIChannel(4);
   // if (placeNewSubExp(4))
   // {
   //   exps.noOfSubExps[3] = 4; // this one has to updated from all exp together, you should fetch it from sd card
@@ -405,7 +284,7 @@ void test()
 
   // // on channel 5
   // resetChannel(5);
-  // api.resetAPIChannel(5, "FGH0485978");
+  // api.resetAPIChannel(5);
   // if (placeNewSubExp(5))
   // {
   //   exps.noOfSubExps[4] = 4; // this one has to updated from all exp together, you should fetch it from sd card
@@ -494,7 +373,6 @@ void setup()
   {
     MCP[i].begin(chip_select_pin_location_discharger[i]);
   }
-  initExp();
   // sd.ls("/",LS_R);
   // debug();
   test();
@@ -503,31 +381,5 @@ void setup()
 void loop()
 {
   // put your main code here, to run repeatedly:
-  fillExp();
   runExp();
-}
-
-void debug()
-{
-  file = sd.open("BGH0485978/outputs/1_logs.csv");
-  if (file)
-  {
-    dumpFile();
-  }
-  else
-  {
-    Serial.println(F("Error opening file."));
-  }
-  file.close();
-  // FatFile cwd;
-  // sd.chdir("/");
-  // sd.remove("BGH0485978/1_logs.csv");
-  // api.resetAPIChannel(1,"BGH0485978");
-  // api.currentSubExpNo[0] = 1;
-  // api.isHeaderWritten[0] = false;
-  // struct CellMeasurement m;
-  // struct ChamberMeasurement c;
-  // api.logReadings(1,&m,&c);
-  // delay(5000);
-  // sd.ls("/",LS_R);
 }
