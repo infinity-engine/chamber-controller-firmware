@@ -36,10 +36,9 @@ bool ReadWriteExpAPI::setup(ConstantChargeDischarge *ccd)
         return false;
     }
     StaticJsonDocument<300> doc;
-    String configPath = String(expName) + String(expName) + "_" + ccd->parameters.cellId;
+    String configPath = String(expName) + "/" + String(expName) + "_" + ccd->parameters.cellId;
     configPath += "/inputs";
     // set info for the cell
-
     sd.chdir("/");
     if (sd.exists(configPath + "/config.json"))
     {
@@ -62,6 +61,12 @@ bool ReadWriteExpAPI::setup(ConstantChargeDischarge *ccd)
             ccd->noOfSubExps = doc["noOfSubExp"];
         }
     }
+    else
+    {
+        Serial.println(F("Config not found."));
+        return false;
+    }
+    ccd->isExpConfigured = true;
     file.close();
     sd.chdir("/");
     if (sd.exists(configPath + "/cell_info.json"))
@@ -101,7 +106,7 @@ bool ReadWriteExpAPI::setUpNextSubExp(ConstantChargeDischarge *ccd)
     StaticJsonDocument<400> doc;
     sd.chdir("/");
     String config = String(expName) + "/" + String(expName) + "_" + ccd->parameters.cellId + "/inputs/" + ccd->nthCurSubExp + "_config.json";
-    Serial.println(config);
+    // Serial.println(config);
     if (sd.exists(config))
     {
         if (ISLOGENABLED)
@@ -150,32 +155,34 @@ bool ReadWriteExpAPI::setUpNextSubExp(ConstantChargeDischarge *ccd)
         if (mode == DriveCycle)
         {
             int sampleTime = doc["sampleTime"]; // in ms
-            if (sampleTime == 0)
+            if (sampleTime > 0)
             {
-                sampleTime = 1000; // default value
+                // if it founds then only change it otherwise leave it as default set by object.reset()
+                ccd->expParamters.sampleTime = sampleTime;
             }
-            ccd->expParamters.sampleTime = sampleTime;
-        }
-        float voltLimet = doc["voltLimit"];
 
-        ccd->expParamters.voltLimit = voltLimet;
-        ccd->expParamters.mode = mode;
-        ccd->expParamters.resVal = resVal;
-        ccd->expParamters.powVal = powVal;
-        ccd->expParamters.currentRate = currentRate;
-        ccd->expParamters.timeLimit = timeLimit;
-        ccd->expParamters.multiplier = multiplier;
-        ccd->expParamters.ambTemp = ambTemp;
-        isHeaderWritten[ccd->parameters.cellId - 1] = false; // so that when writing the logs in csv file write the header row
-    }
-    else
-    {
-        Serial.println(F("Couldn't find the Sub-Exp."));
+            float voltLimet = doc["voltLimit"];
+
+            ccd->expParamters.voltLimit = voltLimet;
+            ccd->expParamters.mode = mode;
+            ccd->expParamters.resVal = resVal;
+            ccd->expParamters.powVal = powVal;
+            ccd->expParamters.currentRate = currentRate;
+            ccd->expParamters.timeLimit = timeLimit;
+            ccd->expParamters.multiplier = multiplier;
+            ccd->expParamters.ambTemp = ambTemp;
+            isHeaderWritten[ccd->parameters.cellId - 1] = false; // so that when writing the logs in csv file write the header row
+        }
+        else
+        {
+            Serial.println(F("Couldn't find the Sub-Exp."));
+            file.close();
+            return false;
+        }
         file.close();
-        return false;
+        return true;
     }
-    file.close();
-    return true;
+    return false;
 }
 
 bool ReadWriteExpAPI::fillNextDriveCyclePortion(ConstantChargeDischarge *ccd, uint8_t n_samples)
@@ -189,9 +196,9 @@ bool ReadWriteExpAPI::fillNextDriveCyclePortion(ConstantChargeDischarge *ccd, ui
     sd.chdir("/");
     String exNameStr = String(expName);
     String config = "";
-    config += exNameStr + "/" + exNameStr + "_" + ccd->parameters.cellId + "/inputs/" + ccd->nthCurSubExp + "_driveCycle.json";
+    config += exNameStr + "/" + exNameStr + "_" + ccd->parameters.cellId + "/inputs/" + ccd->nthCurSubExp + "_driveCycle.csv";
     Serial.println(config);
-    file = sd.open(config, FILE_READ); // warning!! with this line there is a possible chance of heap and stack overlap because of memory overflow
+    file = sd.open(config, FILE_READ);
 
     if (file)
     {
@@ -210,6 +217,11 @@ bool ReadWriteExpAPI::fillNextDriveCyclePortion(ConstantChargeDischarge *ccd, ui
             }
             for (uint8_t i = 0; i < n_samples; i++)
             {
+                if (dcPtr[cellIndex] == 0)
+                {
+                    file.readStringUntil('\n'); // to bypass the header name of the .csv file
+                }
+                file.readStringUntil(','); // to bypass the time column of the  first coulumn
                 float data = file.readStringUntil('\n').toFloat();
                 // Serial.println(data, 4);
                 ccd->expParamters.samples_batch[i] = data;
@@ -240,7 +252,7 @@ bool ReadWriteExpAPI::logReadings(ConstantChargeDischarge *ccd, char *row)
     sd.chdir("/");
     char path[2 * MAX_EXP_NAME_LENGTH + 10] = "";
     sprintf(path, "%s/%s_%d/outputs", expName, expName, channelId);
-    Serial.println(path);
+    // Serial.println(path);
 
     if (!isOpDirChecked[channelId - 1])
     {
@@ -279,20 +291,24 @@ bool ReadWriteExpAPI::logReadings(ConstantChargeDischarge *ccd, char *row)
         return false;
     }
 
-    if (!sd.exists("cycle_" + ccd->currentMultiplierIndex))
+    char newPath[20] = "";
+    sprintf(newPath, "cycle_%d", ccd->currentMultiplierIndex);
+
+    if (!sd.exists(newPath))
     {
-        if (!sd.mkdir("cycle_" + ccd->currentMultiplierIndex))
+        if (!sd.mkdir(newPath))
         {
             Serial.println(F("Cy. Dir make failed."));
             return false;
         }
     }
-    if (!sd.chdir("cycle_" + ccd->currentMultiplierIndex))
+    if (!sd.chdir(newPath))
     {
         Serial.println(F("Cy. Dir change failed."));
         return false;
     }
-    char config[25] = "";
+
+    char config[20] = "";
     sprintf(config, "%d_logs.csv", ccd->nthCurSubExp);
     // Serial.println(config);
 

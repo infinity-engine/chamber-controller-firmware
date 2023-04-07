@@ -1,7 +1,7 @@
 #ifndef CONFIG_ATMEGA
 #define CONFIG_ATMEGA
 
-#define ISLOGENABLED false
+#define ISLOGENABLED true
 
 #define adc0 0
 #define adc1 1

@@ -2,9 +2,9 @@
 #include "ReadWriteEXPAPI.h"
 #define LIMIT_TO_BE_CHECK false
 
-ConstantChargeDischarge::ConstantChargeDischarge()
+ConstantChargeDischarge::ConstantChargeDischarge(uint8_t channelId)
 {
-    reset();
+    reset(channelId);
 }
 
 void ConstantChargeDischarge::reset(unsigned char cell_id, unsigned char mode)
@@ -43,18 +43,17 @@ void ConstantChargeDischarge::reset(unsigned char cell_id, unsigned char mode)
 bool ConstantChargeDischarge::placeNewSubExp(ReadWriteExpAPI *api)
 {
     bool status = true;
+    prepareForNextSubExp();
     if (ISLOGENABLED)
     {
         Serial.print(F("Placing sub-exp ..."));
-        Serial.println(nthCurSubExp + 1);
+        Serial.println(nthCurSubExp);
     }
-    prepareForNextSubExp();
     if (api->setUpNextSubExp(this))
     {
         // update the exp from the data received and already placed on object property.
         status = true;
         isRowConfigured = true;
-        ISLOGENABLED ? Serial.println(F("Done")) : 0;
     }
     else
     {
@@ -100,7 +99,12 @@ bool ConstantChargeDischarge::prepareForNextSubExp()
 {
     isRowConfigured = false;
     curExpStatus = EXP_NOT_STARTED;
-    curRowIndex = 1;
+    if (currentMultiplierIndex == 0 || (curRowIndex == expParamters.multiplier && nthCurSubExp == noOfSubExps))
+    {
+        currentMultiplierIndex += 1; // only for the first time and
+        nthCurSubExp = 0;
+    }
+    curRowIndex = 1; // multiplier index for cur row.
     nthCurSubExp += 1;
     return true;
 }
@@ -114,6 +118,7 @@ void ConstantChargeDischarge::timeReset()
     expParamters.startTime = millis();
     expParamters.prevTime = expParamters.startTime;
     expParamters.prevDriveCycleSampleUpdate = expParamters.startTime;
+    expParamters.sampleIndicator = 0; // rolls back to 0;important in case the total_n_samples*sampleTime > timelimit
 }
 
 /**
@@ -319,11 +324,12 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
             // set time has reached
             if (ISLOGENABLED)
             {
-                Serial.println(F("Time's up for this row index."));
+                Serial.println(F("Time's up / row multiplier index."));
             }
             if (curRowIndex == expParamters.multiplier)
             {
                 status = EXP_FINISHED; // completed
+                finish();
             }
             else
             {
@@ -353,7 +359,6 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigne
     unsigned status = EXP_RUNNING;
     if (curTime > expParamters.prevDriveCycleSampleUpdate + expParamters.sampleTime)
     {
-        // log_(&expParamters);
         if (expParamters.sampleIndicator == 0)
         {
             // just for the first time
@@ -370,10 +375,11 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigne
         }
         if (ISLOGENABLED)
         {
-            Serial.print(F("Drive-cycle sample indicator "));
+            Serial.print(F("DC SI "));
             Serial.println(expParamters.sampleIndicator);
         }
-        unsigned char indicator = ((expParamters.sampleIndicator - 1) % DriveCycleBatchSize); // get the position on cureent batch,array indicator [0 <-> (batchsize-1)]
+        // get the position on cureent batch,array indicator [0 <-> (batchsize-1)]
+        unsigned char indicator = ((expParamters.sampleIndicator - 1) % DriveCycleBatchSize);
         float cur_A = expParamters.samples_batch[indicator];
 
         if (cur_A >= 0)
@@ -388,7 +394,6 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigne
         }
 
         expParamters.sampleIndicator += 1;
-        // Serial.println(expParamters.sampleIndicator);
         if (expParamters.sampleIndicator > expParamters.total_n_samples)
         {
             expParamters.sampleIndicator = 0; // roll back to start

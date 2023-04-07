@@ -1,9 +1,9 @@
 {
     "mode": 1,
-    "currentRate": null,
+    "currentRate": 1,
     "resVal": null,
     "powVal": null,
-    "timeLimit": 36000,
+    "timeLimit": 20,
     "voltLimit": null,
     "total_n_samples": null,
     "multiplier": 1,

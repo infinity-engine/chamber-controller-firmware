@@ -27,10 +27,13 @@ void setDischargerCurrent(unsigned char discharger_id, float set_current)
     float set_voltage = 0.34 * set_current * current_multiplier_out;
     unsigned int mcp_eqv = int(myMap(set_voltage, 0, 5, 0, 4095));
     MCP[discharger_id - 1].analogWrite(mcp_eqv, 0);
-    if (mcp_eqv == 0){
-        digitalWrite(dis_cur_force[discharger_id - 1],HIGH);//force to 0 current 
-    }else{
-        digitalWrite(dis_cur_force[discharger_id - 1],LOW);//open the channel
+    if (mcp_eqv == 0)
+    {
+        digitalWrite(dis_cur_force[discharger_id - 1], HIGH); // force to 0 current
+    }
+    else
+    {
+        digitalWrite(dis_cur_force[discharger_id - 1], LOW); // open the channel
     }
 }
 
@@ -85,7 +88,13 @@ float getDischargerMosfetTemp(unsigned char discharger_id)
     previous_temp_measurement[discharger_id - 1] = beta * previous_temp_measurement[discharger_id - 1] + (1 - beta) * current_measurement;
     return previous_temp_measurement[discharger_id - 1];
 }
-
+/**
+ * @brief
+ *
+ * @param discharger_id 1,2,3,...
+ * @param over_write
+ * @param fan_status
+ */
 void takeApprActForDischFan(unsigned char discharger_id, bool over_write, bool fan_status)
 {
     // take appropriate action for discharger fan
@@ -121,7 +130,7 @@ void setChargerCurrent(unsigned char discharger_id, float set_current)
 
 float getCurrentACS(unsigned char discharger_id)
 {
-    //current measurement using acs sensor
+    // current measurement using acs sensor
     return 0;
 }
 

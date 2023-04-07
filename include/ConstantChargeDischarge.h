@@ -27,7 +27,7 @@ public:
 
     bool overallStatus;         // when the whole experiment on this channel is finished; if any row status is other than (running or not_started) that would reflect to overall status
     unsigned long expStartTime; // starts when first sub experiment starts, will be used to refer the measured parameters time
-    ConstantChargeDischarge();
+    ConstantChargeDischarge(uint8_t channelId = 0);
 
     bool startCurrentSubExp();
     bool prepareForNextSubExp();

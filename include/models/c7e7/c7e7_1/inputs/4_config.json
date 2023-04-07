@@ -1,11 +1,11 @@
 {
-    "mode": 2,
-    "currentRate": 2,
+    "mode": 7,
+    "currentRate": null,
     "resVal": null,
     "powVal": null,
-    "timeLimit": 15,
+    "timeLimit": 40,
     "voltLimit": null,
-    "total_n_samples": null,
+    "total_n_samples": 28,
     "multiplier": 1,
     "ambTemp": 25,
     "holdVolt": null

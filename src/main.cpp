@@ -140,7 +140,8 @@ void runExp()
 {
   for (unsigned char i = 0; i < N_CELL_CAPABLE; i++)
   {
-    // if any exp object is found for this channel
+    Serial.print("187 ");
+    Serial.println(exps[i].overallStatus);
     if (exps[i].overallStatus == EXP_RUNNING)
     {
       // if exp is on running status
@@ -150,11 +151,11 @@ void runExp()
         if (exps[i].expParamters.mode == DriveCycle)
         {
           // frequent update is only necessary in drive cycle mode
-          measureAndRecord(i + 1, false);
+          measureAndRecord(exps[i].parameters.cellId, false);
         }
         else if (millis() - exps[i].expParamters.prevTime > sample_update_delay)
         {
-          measureAndRecord(i + 1, false);
+          measureAndRecord(exps[i].parameters.cellId, false);
         }
       }
 
@@ -172,19 +173,22 @@ void runExp()
         if (exps[i].currentMultiplierIndex == exps[i].overallMultiplier && exps[i].nthCurSubExp == exps[i].noOfSubExps)
         {
           // on it's last cycle
-          Serial.print(F("All cycle has been completed; CH - "));
-          Serial.println(i + 1);
+          Serial.print(F("All cycles completed; CH - "));
+          Serial.println(exps[i].parameters.cellId);
           exps[i].overallStatus = EXP_FINISHED;
           continue;
         }
         else if (exps[i].nthCurSubExp == exps[i].noOfSubExps)
         {
           // not on its last cycle
-          Serial.print(F("This cycle has been completed; CH - "));
-          Serial.println(i + 1);
-          exps[i].nthCurSubExp = 0;
-          exps[i].currentMultiplierIndex += 1;
+          Serial.print(F("Cycle "));
+          Serial.print(exps[i].overallMultiplier);
+          Serial.print(F(" completed; CH - "));
+          Serial.println(exps[i].parameters.cellId);
+          Serial.print("187 ");
+          Serial.println(exps[i].overallStatus);
         }
+
         if (exps[i].placeNewSubExp(&api))
         {
           exps[i].startCurrentSubExp(); // start and reserve the channel
@@ -192,13 +196,15 @@ void runExp()
         else
         {
           exps[i].curExpStatus = EXP_STOPPED;
-          exps[i].overallStatus = EXP_STOPPED;
           // insert logic to send the status to cloud
         }
+        Serial.println("flag");
       }
+
       if (exps[i].curExpStatus == EXP_STOPPED)
       {
         // if any sub exp has stopped.
+        exps[i].overallStatus = EXP_STOPPED;
       }
     }
   }
@@ -209,14 +215,13 @@ void measureAndRecord(uint8_t channelId, bool logOnSerial)
   // get the details and do what you wanna do with it and update curExpStatus if required
   // potential sd card calls
   uint8_t i = channelId - 1;
-  exps[i].performAction(api);
+  exps[i].curExpStatus = exps[i].performAction(api);
   char row[150] = "";
   formRow(row, &exps[i]);
   if (!api.logReadings(&exps[i], row))
   {
     Serial.println(F("Log data failed"));
     exps[i].curExpStatus = EXP_STOPPED;
-    exps[i].overallStatus = EXP_STOPPED;
     return;
   }
   if (logOnSerial || ISLOGENABLED)
@@ -237,76 +242,13 @@ void measureAndRecord(uint8_t channelId, bool logOnSerial)
 void test()
 {
   api.reset((char *)"c7e7"); // set the expname
-  exps[0] = ConstantChargeDischarge();
+
+  exps[0] = ConstantChargeDischarge(1);
+
   if (api.setup(&exps[0]) && exps[0].placeNewSubExp(&api))
   {
     exps[0].startCurrentSubExp(); // start and reserve the channel
   }
-
-  // // on channel 2
-  // resetChannel(2);
-  // api.resetAPIChannel(2);
-  // if (placeNewSubExp(2))
-  // {
-  //   exps.noOfSubExps[1] = 4; // this one has to updated from all exp together, you should fetch it from sd card
-  //   reserveChannel(2);       // start and reserve the channel
-  // }
-  // else
-  // {
-  //   exps.curExpStatus[1] = EXP_NOT_STARTED;
-  // }
-
-  // // on channel 3
-  // resetChannel(3);
-  // api.resetAPIChannel(3);
-  // if (placeNewSubExp(3))
-  // {
-  //   exps.noOfSubExps[2] = 2; // this one has to updated from all exp together, you should fetch it from sd card
-  //   reserveChannel(3);       // start and reserve the channel
-  // }
-  // else
-  // {
-  //   exps.curExpStatus[2] = EXP_NOT_STARTED;
-  // }
-
-  // // on channel 4
-  // resetChannel(4);
-  // api.resetAPIChannel(4);
-  // if (placeNewSubExp(4))
-  // {
-  //   exps.noOfSubExps[3] = 4; // this one has to updated from all exp together, you should fetch it from sd card
-  //   reserveChannel(4);       // start and reserve the channel
-  // }
-  // else
-  // {
-  //   exps.curExpStatus[3] = EXP_NOT_STARTED;
-  // }
-
-  // // on channel 5
-  // resetChannel(5);
-  // api.resetAPIChannel(5);
-  // if (placeNewSubExp(5))
-  // {
-  //   exps.noOfSubExps[4] = 4; // this one has to updated from all exp together, you should fetch it from sd card
-  //   reserveChannel(5);       // start and reserve the channel
-  // }
-  // else
-  // {
-  //   exps.curExpStatus[4] = EXP_NOT_STARTED;
-  // }
-
-  // // on channel 6
-  // resetChannel(6);
-  // api.resetAPIChannel(6, "PGH0485972");
-  // if (placeNewSubExp(6))
-  // {
-  //   exps.noOfSubExps[5] = 4; // this one has to updated from all exp together, you should fetch it from sd card
-  //   reserveChannel(6);       // start and reserve the channel
-  // }
-  // else
-  // {
-  //   exps.curExpStatus[5] = EXP_NOT_STARTED;
-  // }
 }
 
 void lcd_init()

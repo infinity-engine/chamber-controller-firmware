@@ -3,7 +3,7 @@
     "currentRate": null,
     "resVal": null,
     "powVal": null,
-    "timeLimit": 2,
+    "timeLimit": 10,
     "voltLimit": null,
     "total_n_samples": null,
     "multiplier": 1,
