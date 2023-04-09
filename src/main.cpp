@@ -140,8 +140,6 @@ void runExp()
 {
   for (unsigned char i = 0; i < N_CELL_CAPABLE; i++)
   {
-    Serial.print("187 ");
-    Serial.println(exps[i].overallStatus);
     if (exps[i].overallStatus == EXP_RUNNING)
     {
       // if exp is on running status
@@ -182,11 +180,9 @@ void runExp()
         {
           // not on its last cycle
           Serial.print(F("Cycle "));
-          Serial.print(exps[i].overallMultiplier);
+          Serial.print(exps[i].currentMultiplierIndex);
           Serial.print(F(" completed; CH - "));
           Serial.println(exps[i].parameters.cellId);
-          Serial.print("187 ");
-          Serial.println(exps[i].overallStatus);
         }
 
         if (exps[i].placeNewSubExp(&api))
@@ -198,7 +194,6 @@ void runExp()
           exps[i].curExpStatus = EXP_STOPPED;
           // insert logic to send the status to cloud
         }
-        Serial.println("flag");
       }
 
       if (exps[i].curExpStatus == EXP_STOPPED)

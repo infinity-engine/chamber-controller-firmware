@@ -160,29 +160,27 @@ bool ReadWriteExpAPI::setUpNextSubExp(ConstantChargeDischarge *ccd)
                 // if it founds then only change it otherwise leave it as default set by object.reset()
                 ccd->expParamters.sampleTime = sampleTime;
             }
-
-            float voltLimet = doc["voltLimit"];
-
-            ccd->expParamters.voltLimit = voltLimet;
-            ccd->expParamters.mode = mode;
-            ccd->expParamters.resVal = resVal;
-            ccd->expParamters.powVal = powVal;
-            ccd->expParamters.currentRate = currentRate;
-            ccd->expParamters.timeLimit = timeLimit;
-            ccd->expParamters.multiplier = multiplier;
-            ccd->expParamters.ambTemp = ambTemp;
-            isHeaderWritten[ccd->parameters.cellId - 1] = false; // so that when writing the logs in csv file write the header row
         }
-        else
-        {
-            Serial.println(F("Couldn't find the Sub-Exp."));
-            file.close();
-            return false;
-        }
-        file.close();
-        return true;
+        float voltLimet = doc["voltLimit"];
+
+        ccd->expParamters.voltLimit = voltLimet;
+        ccd->expParamters.mode = mode;
+        ccd->expParamters.resVal = resVal;
+        ccd->expParamters.powVal = powVal;
+        ccd->expParamters.currentRate = currentRate;
+        ccd->expParamters.timeLimit = timeLimit;
+        ccd->expParamters.multiplier = multiplier;
+        ccd->expParamters.ambTemp = ambTemp;
+        isHeaderWritten[ccd->parameters.cellId - 1] = false; // so that when writing the logs in csv file write the header row
     }
-    return false;
+    else
+    {
+        Serial.println(F("Couldn't find the Sub-Exp."));
+        file.close();
+        return false;
+    }
+    file.close();
+    return true;
 }
 
 bool ReadWriteExpAPI::fillNextDriveCyclePortion(ConstantChargeDischarge *ccd, uint8_t n_samples)
@@ -401,6 +399,47 @@ bool ReadWriteExpAPI::cleanDir()
         }
         file = file.openNextFile();
     }
+    file.close();
+    return true;
+}
+
+bool ReadWriteExpAPI::createDir(const char *dirName, bool clean)
+{
+    if (!sd.chdir("/"))
+        return false;
+    if (!sd.exists(dirName))
+    {
+        if (sd.mkdir(dirName))
+            return true;
+    }
+    else if (clean)
+    {
+        // remove all the previous content
+        FatFile cwd;
+        if (!cwd.open(dirName))
+        {
+            Serial.println(F("CWD path open failed."));
+        }
+        if (!cwd.rmRfStar())
+        {
+            Serial.println(F("O/P dir exist. Remove failed."));
+            return false;
+        }
+        Serial.println(F("Cleaned o/p dir."));
+        cwd.close();
+        return createDir(dirName);
+    }
+    return true;
+}
+
+bool ReadWriteExpAPI::writeToFile(const char *path, const char *content)
+{
+    if (!sd.chdir("/"))
+        return false;
+    file = sd.open(path, O_WRONLY | O_CREAT);
+    if (!file)
+        return false;
+    file.print(content);
     file.close();
     return true;
 }

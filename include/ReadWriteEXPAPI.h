@@ -3,6 +3,7 @@
 
 #include "config_const.h"
 #include "functionPrototype.h"
+
 #include <SdFat.h>
 extern SdFs sd;
 extern FsFile dir;
@@ -44,6 +45,9 @@ public:
     void formHead(char *head, uint8_t cellId);
 
     bool cleanDir();
+
+    bool createDir(const char *, bool clean = true);
+    bool writeToFile(const char *, const char *);
 };
 
 #endif // ReadWriteEXPAPI_H

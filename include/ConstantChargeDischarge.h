@@ -25,7 +25,7 @@ public:
     bool isExpConfigured;                // tells whether the object has been cofigured with a valid exp configuration
     bool isRowConfigured;                // tells whether the next sub exp is cofigured or not
 
-    bool overallStatus;         // when the whole experiment on this channel is finished; if any row status is other than (running or not_started) that would reflect to overall status
+    uint8_t overallStatus;      // when the whole experiment on this channel is finished; if any row status is other than (running or not_started) that would reflect to overall status
     unsigned long expStartTime; // starts when first sub experiment starts, will be used to refer the measured parameters time
     ConstantChargeDischarge(uint8_t channelId = 0);
 
