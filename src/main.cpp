@@ -10,6 +10,7 @@
 #include "ConstantChargeDischarge.h"
 #include "config_atmega.h"
 #include <Adafruit_ADS1X15.h>
+#include "ConversationAPI.h"
 Adafruit_ADS1115 ads;
 
 #include <Adafruit_Sensor.h>
@@ -20,26 +21,17 @@ MCP4921 MCP[6] = {{}, {}, {}, {}, {}, {}}; // create 6 instances of MCP4921
 
 #include <SdFat.h>
 // 1 for FAT16/FAT32, 2 for exFAT, 3 for FAT16/FAT32 and exFAT.
-#define SD_FAT_TYPE 3
-#if SD_FAT_TYPE == 0
-SdFat sd;
-File dir;
-File file;
-#elif SD_FAT_TYPE == 1
-SdFat32 sd;
-File32 dir;
-File32 file;
-#elif SD_FAT_TYPE == 2
-SdExFat sd;
-ExFile dir;
-ExFile file;
-#elif SD_FAT_TYPE == 3
 SdFs sd;
 FsFile dir;
 FsFile file;
-#else // SD_FAT_TYPE
-#error invalid SD_FAT_TYPE
-#endif // SD_FAT_TYPE
+
+#if HAS_SDIO_CLASS
+#define SD_CONFIG SdioConfig(FIFO_SDIO)
+#elif ENABLE_DEDICATED_SPI
+#define SD_CONFIG SdSpiConfig(SD_card_module_cs, DEDICATED_SPI, SD_SCK_MHZ(16))
+#else // HAS_SDIO_CLASS
+#define SD_CONFIG SdSpiConfig(SD_card_module_cs, SHARED_SPI, SD_SCK_MHZ(16))
+#endif // HAS_SDIO_CLASS
 
 #ifndef MEMORY
 #define MEMORY
@@ -118,6 +110,8 @@ void formRow(char *row, ConstantChargeDischarge *exp);
 
 ReadWriteExpAPI api; // 177 bytes
 
+ConversationAPI cpi;
+
 /**
  * @brief get new set of sub experiment, for all the channels from an api call store them in sd card;
  * create a new instance of the first sub exp;
@@ -163,7 +157,9 @@ void runExp()
         // if the current sub-experiment is in finished status with all the row multiplier completed
         if (ISLOGENABLED)
         {
-          Serial.print(F("Sub exp "));
+          Serial.print(F("CH "));
+          Serial.print(exps[i].parameters.cellId);
+          Serial.print(F(": Sub exp "));
           Serial.print(exps[i].nthCurSubExp);
           Serial.println(F(" finished."));
         }
@@ -171,17 +167,20 @@ void runExp()
         if (exps[i].currentMultiplierIndex == exps[i].overallMultiplier && exps[i].nthCurSubExp == exps[i].noOfSubExps)
         {
           // on it's last cycle
-          Serial.print(F("All cycles completed; CH - "));
-          Serial.println(exps[i].parameters.cellId);
+          Serial.print(F("CH "));
+          Serial.print(exps[i].parameters.cellId);
+          Serial.print(F(": All cycles completed."));
           exps[i].overallStatus = EXP_FINISHED;
           continue;
         }
         else if (exps[i].nthCurSubExp == exps[i].noOfSubExps)
         {
           // not on its last cycle
-          Serial.print(F("Cycle "));
+          Serial.print(F("CH "));
+          Serial.print(exps[i].parameters.cellId);
+          Serial.print(F(": Cycle "));
           Serial.print(exps[i].currentMultiplierIndex);
-          Serial.print(F(" completed; CH - "));
+          Serial.print(F(" completed."));
           Serial.println(exps[i].parameters.cellId);
         }
 
@@ -221,7 +220,9 @@ void measureAndRecord(uint8_t channelId, bool logOnSerial)
   }
   if (logOnSerial || ISLOGENABLED)
   {
-    Serial.print(F("Current:"));
+    Serial.print(F("CH "));
+    Serial.print(exps[i].parameters.cellId);
+    Serial.print(F(": Current:"));
     Serial.print(exps[i].measurement.current, 4);
     Serial.print(F(",Voltage:"));
     Serial.print(exps[i].measurement.voltage);
@@ -236,14 +237,14 @@ void measureAndRecord(uint8_t channelId, bool logOnSerial)
 
 void test()
 {
-  api.reset((char *)"c7e7"); // set the expname
-
-  exps[0] = ConstantChargeDischarge(1);
-
-  if (api.setup(&exps[0]) && exps[0].placeNewSubExp(&api))
+  // api.reset((char *)"c7e7"); // set the expname
+  // api.loadExps(exps);
+  while (!lookAndStartExp(&api, &cpi, exps))
   {
-    exps[0].startCurrentSubExp(); // start and reserve the channel
+    Serial.println(F("Retrying to get exp."));
+    delay(2000);
   }
+  Serial.println(F("Exp Started."));
 }
 
 void lcd_init()
@@ -297,7 +298,7 @@ void setup()
     delay(1000);
   }
   Serial.println(F("ADS initialization success."));
-  while (!sd.begin(SD_card_module_cs))
+  while (!sd.begin(SD_CONFIG))
   {
     Serial.println(F("SD initialization failed."));
     delay(1000);

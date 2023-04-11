@@ -47,7 +47,11 @@ public:
     bool cleanDir();
 
     bool createDir(const char *, bool clean = true);
-    bool writeToFile(const char *, const char *);
+    bool writeToFile(const char *, char *);
+    bool writeToFileStream(const char *, Stream *stream, char readUntil = '\n');
+
+    bool loadExps(ConstantChargeDischarge *expArray);
+    int bytesAvailable(Stream *stream);
 };
 
 #endif // ReadWriteEXPAPI_H

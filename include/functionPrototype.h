@@ -5,6 +5,10 @@
 #include "config_atmega.h"
 #include <SdFat.h>
 
+class ReadWriteExpAPI;
+class ConversationAPI;
+class ConstantChargeDischarge;
+
 struct CellMeasurement
 {
     float current;
@@ -73,12 +77,11 @@ float measureAvgCellTemp(unsigned char cell_id, float *temps = NULL);
 void pinInit();
 void runExp();
 void fillExp();
-bool placeNewSubExp(uint8_t channelId);
 void measureAndRecord(uint8_t channelId, bool logOnSerial = false);
 void updateProgressBar(unsigned long count, unsigned long totalCount, int lineToPrintOn);
 uint16_t getFreeSram();
 void log_(struct ExperimentParameters *exp);
-void debug();
 void dumpFile();
+bool lookAndStartExp(ReadWriteExpAPI *api, ConversationAPI *cpi, ConstantChargeDischarge *expArray);
 
 #endif // PROTOTYPE

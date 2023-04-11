@@ -8,6 +8,7 @@ extern FsFile dir;
 extern FsFile file;
 
 class ReadWriteExpAPI;
+class ConstantChargeDischarge;
 
 class ConversationAPI
 {
@@ -18,5 +19,7 @@ public:
     void clearInputBuffer();
     bool isEXPAvailable();
     bool writeEXPConfig(ReadWriteExpAPI *api);
+    bool outputInit();
+    void readInstructions(ReadWriteExpAPI *api, ConstantChargeDischarge *ccd);
 };
 #endif

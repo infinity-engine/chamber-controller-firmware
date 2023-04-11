@@ -9,7 +9,6 @@ ConstantChargeDischarge::ConstantChargeDischarge(uint8_t channelId)
 
 void ConstantChargeDischarge::reset(unsigned char cell_id, unsigned char mode)
 {
-    isFinished = EXP_NOT_STARTED;
     measurement = {
         0,                  // current
         0,                  // voltage
@@ -235,21 +234,29 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
         measurement.current = measureCellCurrentACS(parameters.cellId);
         if (expParamters.voltLimit != 0 && measurement.voltage > expParamters.voltLimit)
         {
-            Serial.println(F("Voltage limit achieved."));
+            Serial.print(F("CH "));
+            Serial.print(parameters.cellId);
+            Serial.println(F(": Voltage limit achieved."));
             status = EXP_FINISHED;
         }
         if ((measurement.voltage > parameters.maxVoltage || measurement.voltage < parameters.minVoltage) && LIMIT_TO_BE_CHECK)
         {
+            Serial.print(F("CH "));
+            Serial.print(parameters.cellId);
             Serial.println(F("Voltage limit crossed."));
             status = EXP_STOPPED;
         }
         if ((measurement.avgTemperature > parameters.maxTemp || measurement.avgTemperature < parameters.minTemp) && LIMIT_TO_BE_CHECK)
         {
+            Serial.print(F("CH "));
+            Serial.print(parameters.cellId);
             Serial.println(F("Temperature limit crossed"));
             status = EXP_STOPPED;
         }
         if ((abs(abs(measurement.current) - abs(expParamters.currentRate)) > expParamters.curToll) && LIMIT_TO_BE_CHECK)
         {
+            Serial.print(F("CH "));
+            Serial.print(parameters.cellId);
             Serial.println(F("Re-initialize ChargeDischarge"));
             setup();
         }
@@ -258,6 +265,8 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
         measurement.current = getDischargerCurrent(parameters.cellId);
         if (expParamters.voltLimit != 0 && measurement.voltage < expParamters.voltLimit)
         {
+            Serial.print(F("CH "));
+            Serial.print(parameters.cellId);
             Serial.println(F("Voltage limit achieved."));
             status = EXP_FINISHED;
         }
@@ -266,16 +275,23 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
             // even though you don't want to perform experiment on voltage limit
             // there should be one for safety purpose
             // change the limit for forceful experiment
+            Serial.print(F("CH "));
+            Serial.print(parameters.cellId);
             Serial.println(F("Voltage limit crossed"));
             status = EXP_FINISHED; // completed
         }
         if ((measurement.avgTemperature > parameters.maxTemp || measurement.avgTemperature < parameters.minTemp) && LIMIT_TO_BE_CHECK)
         {
+
+            Serial.print(F("CH "));
+            Serial.print(parameters.cellId);
             Serial.println(F("Temperature limit crossed"));
             status = EXP_STOPPED; // stopped
         }
         if ((abs(abs(measurement.current) - abs(expParamters.currentRate)) > expParamters.curToll) && LIMIT_TO_BE_CHECK)
         {
+            Serial.print(F("CH "));
+            Serial.print(parameters.cellId);
             Serial.println(F("Re-initialize ChargeDischarge"));
             setup();
         }
@@ -324,6 +340,8 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
             // set time has reached
             if (ISLOGENABLED)
             {
+                Serial.print(F("CH "));
+                Serial.print(parameters.cellId);
                 Serial.println(F("Time's up / row multiplier index."));
             }
             if (curRowIndex == expParamters.multiplier)
@@ -373,11 +391,13 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigne
                 return status;
             }
         }
-        if (ISLOGENABLED)
-        {
-            Serial.print(F("DC SI "));
-            Serial.println(expParamters.sampleIndicator);
-        }
+        // if (ISLOGENABLED)
+        // {
+        //     Serial.print(F("CH "));
+        //     Serial.print(parameters.cellId);
+        //     Serial.print(F("DC SI "));
+        //     Serial.println(expParamters.sampleIndicator);
+        // }
         // get the position on cureent batch,array indicator [0 <-> (batchsize-1)]
         unsigned char indicator = ((expParamters.sampleIndicator - 1) % DriveCycleBatchSize);
         float cur_A = expParamters.samples_batch[indicator];
@@ -404,6 +424,8 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigne
             // get the new set of samples
             if (ISLOGENABLED)
             {
+                Serial.print(F("CH "));
+                Serial.print(parameters.cellId);
                 Serial.println(F("Filling next set of samples."));
             }
             if (!api.fillNextDriveCyclePortion(this))

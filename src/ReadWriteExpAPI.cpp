@@ -432,8 +432,34 @@ bool ReadWriteExpAPI::createDir(const char *dirName, bool clean)
     return true;
 }
 
-bool ReadWriteExpAPI::writeToFile(const char *path, const char *content)
+bool ReadWriteExpAPI::writeToFileStream(const char *path, Stream *stream, char readUntil)
 {
+
+    if (!sd.chdir("/"))
+        return false;
+    file = sd.open(path, O_WRONLY | O_CREAT);
+    if (!file)
+        return false;
+    int d = 200; // atleast wait for some time to get delayed response
+    unsigned long t = millis();
+    while (millis() < t + d)
+    {
+        while (bytesAvailable(stream))
+        {
+            t = millis();
+            char c = stream->read();
+            if (c == readUntil)
+                break;
+            file.print(c);
+        }
+    }
+    file.close();
+    return true;
+}
+
+bool ReadWriteExpAPI::writeToFile(const char *path, char *content)
+{
+
     if (!sd.chdir("/"))
         return false;
     file = sd.open(path, O_WRONLY | O_CREAT);
@@ -441,5 +467,65 @@ bool ReadWriteExpAPI::writeToFile(const char *path, const char *content)
         return false;
     file.print(content);
     file.close();
+    return true;
+}
+
+int ReadWriteExpAPI::bytesAvailable(Stream *stream)
+{
+    int bytesAvailable = stream->available();
+
+    if (bytesAvailable >= 60)
+    {
+        Serial.println(F("Warning: incoming buffer is almost full!"));
+    }
+    if (bytesAvailable == 64)
+    {
+        Serial.println(F("Error: incoming buffer overflow!"));
+    }
+    return bytesAvailable;
+}
+
+bool ReadWriteExpAPI::loadExps(ConstantChargeDischarge *exps)
+{
+    Serial.print(F("Exp - "));
+    Serial.println(expName);
+    if (!sd.chdir("/"))
+    {
+        Serial.println(F("Chdir failed!"));
+        return false;
+    }
+    File dir = sd.open(expName);
+    if (!dir)
+    {
+        Serial.println(F("Config not exist"));
+        return false;
+    }
+    while (true)
+    {
+        File entry = dir.openNextFile();
+        if (!entry)
+        {
+            entry.close();
+            break;
+        }
+        if (entry.isDirectory())
+        {
+            char name[MAX_EXP_NAME_LENGTH + 5];
+            entry.getName(name, MAX_EXP_NAME_LENGTH + 5);
+            char *p = strtok(name, "_");
+            p = strtok(NULL, "_");
+            int channenID = atoi(p);
+            Serial.print(F("Exp load on channel "));
+            Serial.println(channenID);
+            exps[channenID - 1] = ConstantChargeDischarge(channenID);
+
+            if (setup(&exps[channenID - 1]) && exps[channenID - 1].placeNewSubExp(this))
+            {
+                exps[channenID - 1].startCurrentSubExp(); // start and reserve the channel
+            }
+        }
+        entry.close();
+    }
+    dir.close();
     return true;
 }
