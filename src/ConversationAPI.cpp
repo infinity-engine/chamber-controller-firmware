@@ -2,6 +2,8 @@
 #include "ReadWriteEXPAPI.h"
 #include "ConstantChargeDischarge.h"
 
+#include <HardwareSerial.h>
+
 ConversationAPI::ConversationAPI()
 {
     Serial2.begin(115200);
@@ -10,7 +12,8 @@ ConversationAPI::ConversationAPI()
 void ConversationAPI::sendMsgID(const char *msgID)
 {
     clearInputBuffer();
-    Serial2.println(msgID);
+    Serial2.print(msgID);
+    Serial2.print('\n');
     Serial2.flush();
 }
 
@@ -22,7 +25,7 @@ bool ConversationAPI::isDeviceReady()
     {
         while (Serial2.available())
         {
-            String code = Serial2.readStringUntil('\r');
+            String code = Serial2.readStringUntil('\n');
 
             if (code == "YES")
             {
@@ -45,7 +48,7 @@ bool ConversationAPI::isEXPAvailable()
     {
         while (Serial2.available())
         {
-            String code = Serial2.readStringUntil('\r');
+            String code = Serial2.readStringUntil('\n');
             if (code == "YES")
             {
                 return true;
@@ -72,7 +75,7 @@ bool ConversationAPI::writeEXPConfig(ReadWriteExpAPI *api)
             while (Serial2.available())
             {
                 flag = true;
-                String code = Serial2.readStringUntil('\r');
+                String code = Serial2.readStringUntil('\n');
                 unsigned long t2 = millis();
                 if (code == "NULL")
                 {
@@ -83,7 +86,7 @@ bool ConversationAPI::writeEXPConfig(ReadWriteExpAPI *api)
                 {
                     while (Serial2.available() || millis() < t2 + 200)
                     {
-                        String dirName = Serial2.readStringUntil('\r');
+                        String dirName = Serial2.readStringUntil('\n');
                         // for the first time this would be the directory name
                         if (!isExpNameReceived)
                         {
@@ -99,7 +102,7 @@ bool ConversationAPI::writeEXPConfig(ReadWriteExpAPI *api)
                 {
                     while (Serial2.available() || millis() < t2 + 200)
                     {
-                        String path = Serial2.readStringUntil('\r');
+                        String path = Serial2.readStringUntil('\n');
                         if (path.endsWith(".csv"))
                         { // for drive cycle file
                             char terminator = '\r';
@@ -117,36 +120,16 @@ bool ConversationAPI::writeEXPConfig(ReadWriteExpAPI *api)
                         }
                     }
                 }
+                else if (code == "INVALID")
+                {
+                    return false;
+                }
             }
             if (flag)
                 break;
         }
     }
     return false;
-}
-
-bool ConversationAPI::outputInit()
-{
-    sendMsgID((const char *)"IN_SD_EXP");
-    unsigned long t = millis();
-    if (!isDeviceReady())
-        return false;
-    while (millis() < t + 10000)
-    {
-        while (Serial2.available())
-        {
-            String code = Serial2.readStringUntil('\r');
-            if (code == "YES")
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-    }
-    return true;
 }
 
 void ConversationAPI::clearInputBuffer()
@@ -162,14 +145,99 @@ void ConversationAPI::clearInputBuffer()
     }
 }
 
+void ConversationAPI::triggerEspInt()
+{
+    digitalWrite(ESP_INT_PIN, HIGH);
+}
+
+void ConversationAPI::resetEspInt()
+{
+    digitalWrite(ESP_INT_PIN, LOW);
+}
+
+bool ConversationAPI::isReadyToStartEXP(String chArray)
+{
+    String msg = "START\n" + chArray;
+    sendMsgID(msg.c_str());
+    unsigned long t = millis();
+    while (millis() < t + 2000)
+    {
+        while (Serial2.available())
+        {
+            String code = Serial2.readStringUntil('\n');
+
+            if (code == "YES")
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+    return false;
+}
+
+void ConversationAPI::sendMeasurement(uint8_t channelId, char *msg)
+{
+    if (Serial2.availableForWrite() == 0)
+    {
+        Serial.println("Serial2 buffer is full");
+    }
+
+    // triggerEspInt();
+    Serial2.print("<");
+    Serial2.print(channelId);
+    Serial2.print("\nMT\n");
+    Serial2.print(msg);
+    Serial2.print("\n>");
+    // Serial.println(Serial2.readStringUntil('\n'));
+    // resetEspInt();
+}
+
+void ConversationAPI::incrementMultiplier(uint8_t channelID, uint8_t rowId)
+{
+    if (Serial2.availableForWrite() == 0)
+    {
+        Serial.println("Serial2 buffer is full");
+    }
+
+    // triggerEspInt();
+    Serial2.print('<');
+    Serial2.print(channelID);
+    Serial2.print("\nIM\n");
+    Serial2.print(rowId);
+    Serial2.print("\n>");
+    // resetEspInt();
+}
+
+void ConversationAPI::setStatus(uint8_t status, uint8_t channelID, uint8_t rowId)
+{
+    if (Serial2.availableForWrite() == 0)
+    {
+        Serial.println("Serial2 buffer is full");
+    }
+
+    // triggerEspInt();
+    Serial2.print("<");
+    Serial2.print(channelID);
+    Serial2.print("\nSS\n");
+    Serial2.print(rowId);
+    Serial2.print('\n');
+    Serial2.print(status);
+    Serial2.print("\n>");
+    // resetEspInt();
+}
+
 void ConversationAPI::readInstructions(ReadWriteExpAPI *api, ConstantChargeDischarge *ccd)
 {
     while (Serial2.available())
     {
-        String msgID = Serial2.readStringUntil('\r');
+        String msgID = Serial2.readStringUntil('\n');
         if (msgID == "START")
         {
-            String expName = Serial2.readStringUntil('\r');
+            String expName = Serial2.readStringUntil('\n');
             Serial.print(F("Received instruction to start exp "));
             Serial.println(expName);
             if (expName.length() > 0)

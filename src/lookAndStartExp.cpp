@@ -23,9 +23,28 @@ bool lookAndStartExp(ReadWriteExpAPI *api, ConversationAPI *cpi, ConstantChargeD
     }
     Serial.println(F("EXP config write success."));
     Serial.println(F("Loading Exps..."));
+
     if (!api->loadExps(expArray))
     {
         Serial.println(F("Load Exp Failed!"));
+        return false;
+    }
+    String chArray = "";
+    for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
+    {
+        if (expArray[i].curExpStatus == EXP_RUNNING)
+        {
+            if (chArray.length() > 0)
+            {
+                chArray += ',';
+            }
+            chArray += i + 1;
+        }
+    }
+
+    if (!cpi->isReadyToStartEXP(chArray))
+    {
+        Serial.println(F("ESP is not ready for starting the exp."));
         return false;
     }
     return true;

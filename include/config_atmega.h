@@ -1,7 +1,7 @@
 #ifndef CONFIG_ATMEGA
 #define CONFIG_ATMEGA
 
-#define ISLOGENABLED true
+#define ISLOGENABLED false
 
 #define adc0 0
 #define adc1 1
@@ -62,5 +62,8 @@
 #define EXP_RUNNING 1
 #define EXP_STOPPED 2
 #define EXP_FINISHED 3
+#define EXP_PAUSED 4
 
+#define ESP_INT_PIN 19
+#define ATMEGA_INT_PIN 18
 #endif // CONFIG_ATMEGA

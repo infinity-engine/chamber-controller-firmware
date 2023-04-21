@@ -1,5 +1,6 @@
 #include "ConstantChargeDischarge.h"
 #include "ReadWriteEXPAPI.h"
+#include "ConversationAPI.h"
 #define LIMIT_TO_BE_CHECK false
 
 ConstantChargeDischarge::ConstantChargeDischarge(uint8_t channelId)
@@ -80,8 +81,9 @@ bool ConstantChargeDischarge::startCurrentSubExp()
     curExpStatus = EXP_RUNNING;
     overallStatus = EXP_RUNNING;
     setup();
-    if (curRowIndex == 1 && currentMultiplierIndex == 1)
+    if (curRowIndex == 1 && currentMultiplierIndex == 1 && nthCurSubExp == 1)
     {
+        // only if this is the first exp of first sub exp of first cycle
         expStartTime = millis();
     }
     timeReset();
@@ -110,7 +112,7 @@ bool ConstantChargeDischarge::prepareForNextSubExp()
 
 /**
  * @brief to reinitiate time for the sub experiment
- *
+ * can also be called on row multiplier index increase
  */
 void ConstantChargeDischarge::timeReset()
 {
@@ -218,16 +220,34 @@ void ConstantChargeDischarge::finish()
  * @param api
  * @return uint8_t
  */
-uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
+uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, ConversationAPI &cpi)
 {
     // time consumption - minimum 88ms; max 174 ms
+    if (expParamters.mode == DriveCycle)
+    {
+        if (millis() - expParamters.prevTime < (expParamters.sampleTime / 2.0))
+        {
+            return curExpStatus;
+        }
+    }
+    else
+    {
+        if (millis() - expParamters.prevTime < sample_update_delay)
+        {
+            return curExpStatus;
+        }
+    }
     float hold_tolerance = 0.1;
     measureCellTemperature(parameters.cellId, measurement.temperature); // 97ms for 6 sensors and 2 samples
     measurement.avgTemperature = measureAvgCellTemp(parameters.cellId, measurement.temperature);
     measurement.voltage = measureCellVoltage(parameters.cellId); // 39ms for for 5 samples
+    chmMeas.avgHum = measureChamberAverageHumidity();
+    chmMeas.avgTemp = measureChamberAverageTemperature();
+
     unsigned char status = EXP_RUNNING;
     unsigned long curTime = millis();
     expParamters.prevTime = curTime;
+
     switch (expParamters.mode)
     {
     case ConstantCurrentCharge:
@@ -243,21 +263,21 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
         {
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
-            Serial.println(F("Voltage limit crossed."));
+            Serial.println(F(": Voltage limit crossed."));
             status = EXP_STOPPED;
         }
         if ((measurement.avgTemperature > parameters.maxTemp || measurement.avgTemperature < parameters.minTemp) && LIMIT_TO_BE_CHECK)
         {
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
-            Serial.println(F("Temperature limit crossed"));
+            Serial.println(F(": Temperature limit crossed"));
             status = EXP_STOPPED;
         }
         if ((abs(abs(measurement.current) - abs(expParamters.currentRate)) > expParamters.curToll) && LIMIT_TO_BE_CHECK)
         {
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
-            Serial.println(F("Re-initialize ChargeDischarge"));
+            Serial.println(F(": Re-initialize ChargeDischarge"));
             setup();
         }
         break;
@@ -267,7 +287,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
         {
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
-            Serial.println(F("Voltage limit achieved."));
+            Serial.println(F(": Voltage limit achieved."));
             status = EXP_FINISHED;
         }
         if ((measurement.voltage > parameters.maxVoltage || measurement.voltage < parameters.minVoltage) && LIMIT_TO_BE_CHECK)
@@ -277,7 +297,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
             // change the limit for forceful experiment
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
-            Serial.println(F("Voltage limit crossed"));
+            Serial.println(F(": Voltage limit crossed"));
             status = EXP_FINISHED; // completed
         }
         if ((measurement.avgTemperature > parameters.maxTemp || measurement.avgTemperature < parameters.minTemp) && LIMIT_TO_BE_CHECK)
@@ -285,14 +305,14 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
 
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
-            Serial.println(F("Temperature limit crossed"));
+            Serial.println(F(": Temperature limit crossed"));
             status = EXP_STOPPED; // stopped
         }
         if ((abs(abs(measurement.current) - abs(expParamters.currentRate)) > expParamters.curToll) && LIMIT_TO_BE_CHECK)
         {
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
-            Serial.println(F("Re-initialize ChargeDischarge"));
+            Serial.println(F(": Re-initialize ChargeDischarge"));
             setup();
         }
         break;
@@ -332,6 +352,10 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
         break;
     }
     // update the time parameters
+    // record data
+
+    recordData(api, cpi);
+
     if (expParamters.timeLimit > 0)
     {
         // if time limit is set
@@ -342,15 +366,18 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
             {
                 Serial.print(F("CH "));
                 Serial.print(parameters.cellId);
-                Serial.println(F("Time's up / row multiplier index."));
+                Serial.println(F(": Time's up / row multiplier index."));
             }
+
             if (curRowIndex == expParamters.multiplier)
             {
                 status = EXP_FINISHED; // completed
                 finish();
+                cpi.setStatus(EXP_FINISHED, parameters.cellId, nthCurSubExp);
             }
             else
             {
+                cpi.incrementMultiplier(parameters.cellId, nthCurSubExp);
                 curRowIndex += 1;
                 timeReset();
             }
@@ -375,6 +402,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api)
 uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigned long curTime)
 {
     unsigned status = EXP_RUNNING;
+    static bool isOnDischarge;
     if (curTime > expParamters.prevDriveCycleSampleUpdate + expParamters.sampleTime)
     {
         if (expParamters.sampleIndicator == 0)
@@ -395,7 +423,7 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigne
         // {
         //     Serial.print(F("CH "));
         //     Serial.print(parameters.cellId);
-        //     Serial.print(F("DC SI "));
+        //     Serial.print(F(": DC SI "));
         //     Serial.println(expParamters.sampleIndicator);
         // }
         // get the position on cureent batch,array indicator [0 <-> (batchsize-1)]
@@ -405,20 +433,22 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigne
         if (cur_A >= 0)
         {
             setDischargerCurrent(parameters.cellId, cur_A);
-            measurement.current = getDischargerCurrent(parameters.cellId);
+            isOnDischarge = true;
         }
         else
         {
             setChargerCurrent(parameters.cellId, cur_A);
-            measurement.current = getCurrentACS(parameters.cellId);
+            isOnDischarge = false;
         }
 
         expParamters.sampleIndicator += 1;
+
         if (expParamters.sampleIndicator > expParamters.total_n_samples)
         {
             expParamters.sampleIndicator = 0; // roll back to start
             // next row multiplier index will only start when timelimit is hit
         }
+
         else if (indicator >= DriveCycleBatchSize)
         {
             // get the new set of samples
@@ -426,7 +456,7 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigne
             {
                 Serial.print(F("CH "));
                 Serial.print(parameters.cellId);
-                Serial.println(F("Filling next set of samples."));
+                Serial.println(F(": Filling next set of samples."));
             }
             if (!api.fillNextDriveCyclePortion(this))
             {
@@ -434,9 +464,79 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigne
                 status = EXP_STOPPED;
             }
         }
-        expParamters.prevDriveCycleSampleUpdate = curTime;
+
+        expParamters.prevDriveCycleSampleUpdate = millis();
     }
-    chmMeas.avgHum = measureChamberAverageHumidity();
-    chmMeas.avgTemp = measureChamberAverageTemperature();
+
+    // get rest of the measurement
+    if (isOnDischarge)
+    {
+        measurement.current = getDischargerCurrent(parameters.cellId);
+    }
+    else
+    {
+        measurement.current = getCurrentACS(parameters.cellId);
+    }
+
     return status;
+}
+
+void ConstantChargeDischarge::recordData(ReadWriteExpAPI &api, ConversationAPI &cpi)
+{
+    // get the details and do what you wanna do with it and update curExpStatus if required
+    // potential sd card calls
+    char row[150] = "";
+    formRow(row);
+    cpi.sendMeasurement(parameters.cellId, row);
+    if (!api.logReadings(this, row))
+    {
+        Serial.println(F("Log data failed"));
+        curExpStatus = EXP_STOPPED;
+        return;
+    }
+    if (ISLOGENABLED)
+    {
+        Serial.print(F("CH "));
+        Serial.print(parameters.cellId);
+        Serial.print(F(": Current:"));
+        Serial.print(measurement.current, 4);
+        Serial.print(F(",Voltage:"));
+        Serial.print(measurement.voltage);
+        Serial.print(F(",Cell Temp.(°C):"));
+        Serial.print(measurement.avgTemperature);
+        Serial.print(F(",Chamber Humidity(%):"));
+        Serial.print(chmMeas.avgHum);
+        Serial.print(F(",Chamber Temp.(°C):"));
+        Serial.println(chmMeas.avgTemp);
+    }
+}
+
+void ConstantChargeDischarge::formRow(char *row)
+{
+    char buff[20] = "";
+    dtostrf((millis() - expStartTime) / 1000.0, 2, 2, buff);
+    strcat(row, buff);
+
+    strcat(row, ",");
+    dtostrf(measurement.voltage, 3, 3, buff);
+    strcat(row, buff);
+
+    strcat(row, ",");
+    dtostrf(measurement.current, 3, 3, buff);
+    strcat(row, buff);
+
+    strcat(row, ",");
+    dtostrf(chmMeas.avgTemp, 3, 3, buff);
+    strcat(row, buff);
+
+    strcat(row, ",");
+    dtostrf(chmMeas.avgHum, 3, 3, buff);
+    strcat(row, buff);
+
+    for (uint8_t i = 0; i < no_of_temp_sen_connected_cell[parameters.cellId - 1]; i++)
+    {
+        strcat(row, ",");
+        dtostrf(measurement.temperature[i], 2, 2, buff);
+        strcat(row, buff);
+    }
 }

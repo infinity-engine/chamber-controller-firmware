@@ -5,7 +5,7 @@
 #include "functionPrototype.h"
 
 class ReadWriteExpAPI; // forward declaration to avoid circular depedency
-
+class ConversationAPI;
 class ConstantChargeDischarge
 {
 public:
@@ -19,7 +19,7 @@ public:
     int noOfSubExps;                     // how many rows
     int nthCurSubExp;                    // nt row or nth sub experiment 1- max sub
     unsigned char curExpStatus;          // status of that particular sub experiment
-    unsigned int curRowIndex;            // points to current row index
+    unsigned int curRowIndex;            // points to current row index/multiplier
     unsigned int overallMultiplier;      // points to no of cycle all the sub experiment has to be repeated
     unsigned int currentMultiplierIndex; // points to current index;
     bool isExpConfigured;                // tells whether the object has been cofigured with a valid exp configuration
@@ -39,8 +39,10 @@ public:
     bool isConAmTe; // is consistant ambient temperature throughout the experiment
     float ambTemp;
 
-    uint8_t performAction(ReadWriteExpAPI &api);
+    uint8_t performAction(ReadWriteExpAPI &api, ConversationAPI &cpi);
     uint8_t perFormDriveCycle(ReadWriteExpAPI &api, unsigned long curTime = millis());
     bool placeNewSubExp(ReadWriteExpAPI *api);
+    void recordData(ReadWriteExpAPI &api, ConversationAPI &cpi);
+    void formRow(char *);
 };
 #endif // CCHDIS_H

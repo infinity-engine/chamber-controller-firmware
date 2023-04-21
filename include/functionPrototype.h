@@ -50,7 +50,7 @@ struct ExperimentParameters
     float ambTemp;                            // only used when isConAmTe is false
     float holdVolt;                           // only used when Hold experiment is on progress
     float voltLimit;                          // if until specified
-    int sampleTime;                           // refers to drivecylce sample delay in ms
+    unsigned int sampleTime;                  // refers to drivecylce sample delay in ms
     float samples_batch[DriveCycleBatchSize];
 };
 
@@ -77,11 +77,11 @@ float measureAvgCellTemp(unsigned char cell_id, float *temps = NULL);
 void pinInit();
 void runExp();
 void fillExp();
-void measureAndRecord(uint8_t channelId, bool logOnSerial = false);
 void updateProgressBar(unsigned long count, unsigned long totalCount, int lineToPrintOn);
 uint16_t getFreeSram();
 void log_(struct ExperimentParameters *exp);
 void dumpFile();
 bool lookAndStartExp(ReadWriteExpAPI *api, ConversationAPI *cpi, ConstantChargeDischarge *expArray);
+void asAllExpFinished();
 
 #endif // PROTOTYPE

@@ -19,7 +19,12 @@ public:
     void clearInputBuffer();
     bool isEXPAvailable();
     bool writeEXPConfig(ReadWriteExpAPI *api);
-    bool outputInit();
     void readInstructions(ReadWriteExpAPI *api, ConstantChargeDischarge *ccd);
+    void triggerEspInt();
+    void resetEspInt();
+    void sendMeasurement(uint8_t channelId, char *msg);
+    void incrementMultiplier(uint8_t channelID, uint8_t rowId = 0);
+    void setStatus(uint8_t status, uint8_t channelID = 0, uint8_t rowId = 0);
+    bool isReadyToStartEXP(String chArray);
 };
 #endif

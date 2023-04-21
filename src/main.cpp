@@ -104,8 +104,6 @@ DHT dht[] = {{DHTPIN_1, DHTTYPE_1}, {DHTPIN_2, DHTTYPE_2}, {DHTPIN_3, DHTTYPE_3}
 
 ConstantChargeDischarge exps[N_CELL_CAPABLE]; // 177*6 = 1062 bytes global space
 
-void formRow(char *row, ConstantChargeDischarge *exp);
-
 // allocate store for the objects in global space
 
 ReadWriteExpAPI api; // 177 bytes
@@ -140,15 +138,7 @@ void runExp()
       if (exps[i].curExpStatus == EXP_RUNNING)
       {
         // there is an sub-exp placed, which is running
-        if (exps[i].expParamters.mode == DriveCycle)
-        {
-          // frequent update is only necessary in drive cycle mode
-          measureAndRecord(exps[i].parameters.cellId, false);
-        }
-        else if (millis() - exps[i].expParamters.prevTime > sample_update_delay)
-        {
-          measureAndRecord(exps[i].parameters.cellId, false);
-        }
+        exps[i].curExpStatus = exps[i].performAction(api, cpi);
       }
 
       // this step will be triggered on completion of previous sub exp as well as on the starting of new set of exp
@@ -166,11 +156,13 @@ void runExp()
         // check whther it was the last experiment among all the set of experiment for the particular cell to run
         if (exps[i].currentMultiplierIndex == exps[i].overallMultiplier && exps[i].nthCurSubExp == exps[i].noOfSubExps)
         {
-          // on it's last cycle
+          // on it's last sub exp of last cycle
           Serial.print(F("CH "));
           Serial.print(exps[i].parameters.cellId);
-          Serial.print(F(": All cycles completed."));
+          Serial.println(F(": All cycles completed."));
           exps[i].overallStatus = EXP_FINISHED;
+          cpi.setStatus(EXP_FINISHED, exps[i].parameters.cellId); // will update the last cycle and last row
+          asAllExpFinished();
           continue;
         }
         else if (exps[i].nthCurSubExp == exps[i].noOfSubExps)
@@ -180,8 +172,8 @@ void runExp()
           Serial.print(exps[i].parameters.cellId);
           Serial.print(F(": Cycle "));
           Serial.print(exps[i].currentMultiplierIndex);
-          Serial.print(F(" completed."));
-          Serial.println(exps[i].parameters.cellId);
+          Serial.println(F(" completed."));
+          cpi.incrementMultiplier(exps[i].parameters.cellId); // only curent cycle completed
         }
 
         if (exps[i].placeNewSubExp(&api))
@@ -204,41 +196,38 @@ void runExp()
   }
 }
 
-void measureAndRecord(uint8_t channelId, bool logOnSerial)
+void asAllExpFinished()
 {
-  // get the details and do what you wanna do with it and update curExpStatus if required
-  // potential sd card calls
-  uint8_t i = channelId - 1;
-  exps[i].curExpStatus = exps[i].performAction(api);
-  char row[150] = "";
-  formRow(row, &exps[i]);
-  if (!api.logReadings(&exps[i], row))
+  uint8_t allStatusCombined = EXP_FINISHED;
+  for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
   {
-    Serial.println(F("Log data failed"));
-    exps[i].curExpStatus = EXP_STOPPED;
-    return;
+    if (&exps[i] != NULL && exps[i].overallStatus == EXP_RUNNING)
+    {
+      return;
+    }
+    if (exps[i].overallStatus == EXP_STOPPED)
+    {
+      // if any of the exp is stopped in any channel then all combined status would be that
+      allStatusCombined = EXP_STOPPED;
+    }
   }
-  if (logOnSerial || ISLOGENABLED)
-  {
-    Serial.print(F("CH "));
-    Serial.print(exps[i].parameters.cellId);
-    Serial.print(F(": Current:"));
-    Serial.print(exps[i].measurement.current, 4);
-    Serial.print(F(",Voltage:"));
-    Serial.print(exps[i].measurement.voltage);
-    Serial.print(F(",Cell Temp.(°C):"));
-    Serial.print(exps[i].measurement.avgTemperature);
-    Serial.print(F(",Chamber Humidity(%):"));
-    Serial.print(exps[i].chmMeas.avgHum);
-    Serial.print(F(",Chamber Temp.(°C):"));
-    Serial.println(exps[i].chmMeas.avgTemp);
-  }
+  Serial.println(F("All exps finished across all channels."));
+  cpi.sendMsgID("<END");
+  Serial2.print(allStatusCombined);
+  Serial2.print("\n>");
 }
 
 void test()
 {
   // api.reset((char *)"c7e7"); // set the expname
   // api.loadExps(exps);
+
+  for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
+  {
+    ConstantChargeDischarge exp;
+    exps[i] = exp; // empty the prev
+  }
+
   while (!lookAndStartExp(&api, &cpi, exps))
   {
     Serial.println(F("Retrying to get exp."));

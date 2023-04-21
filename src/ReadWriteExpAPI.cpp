@@ -160,6 +160,11 @@ bool ReadWriteExpAPI::setUpNextSubExp(ConstantChargeDischarge *ccd)
                 // if it founds then only change it otherwise leave it as default set by object.reset()
                 ccd->expParamters.sampleTime = sampleTime;
             }
+            else
+            {
+                // default values is 1000ms
+                ccd->expParamters.sampleTime = 1000;
+            }
         }
         float voltLimet = doc["voltLimit"];
 
@@ -195,7 +200,7 @@ bool ReadWriteExpAPI::fillNextDriveCyclePortion(ConstantChargeDischarge *ccd, ui
     String exNameStr = String(expName);
     String config = "";
     config += exNameStr + "/" + exNameStr + "_" + ccd->parameters.cellId + "/inputs/" + ccd->nthCurSubExp + "_driveCycle.csv";
-    Serial.println(config);
+    // Serial.println(config);
     file = sd.open(config, FILE_READ);
 
     if (file)
@@ -485,6 +490,13 @@ int ReadWriteExpAPI::bytesAvailable(Stream *stream)
     return bytesAvailable;
 }
 
+/**
+ * @brief Load the config and start it
+ *
+ * @param exps
+ * @return true
+ * @return false
+ */
 bool ReadWriteExpAPI::loadExps(ConstantChargeDischarge *exps)
 {
     Serial.print(F("Exp - "));
@@ -499,6 +511,11 @@ bool ReadWriteExpAPI::loadExps(ConstantChargeDischarge *exps)
     {
         Serial.println(F("Config not exist"));
         return false;
+    }
+    bool isExpLoaded[N_CELL_CAPABLE];
+    for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
+    {
+        isExpLoaded[i] = false;
     }
     while (true)
     {
@@ -517,15 +534,23 @@ bool ReadWriteExpAPI::loadExps(ConstantChargeDischarge *exps)
             int channenID = atoi(p);
             Serial.print(F("Exp load on channel "));
             Serial.println(channenID);
+
             exps[channenID - 1] = ConstantChargeDischarge(channenID);
 
             if (setup(&exps[channenID - 1]) && exps[channenID - 1].placeNewSubExp(this))
             {
-                exps[channenID - 1].startCurrentSubExp(); // start and reserve the channel
+                isExpLoaded[channenID - 1] = true;
             }
         }
         entry.close();
     }
     dir.close();
+    for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
+    {
+        if (isExpLoaded[i])
+        {
+            exps[i + 1].startCurrentSubExp(); // start and reserve the channel
+        }
+    }
     return true;
 }
