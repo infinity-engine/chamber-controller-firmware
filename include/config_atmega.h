@@ -53,7 +53,7 @@
 #define N_CELL_CAPABLE 6
 
 // drive cycle
-#define DriveCycleBatchSize 20
+#define DriveCycleBatchSize 100
 
 #define MAX_EXP_NAME_LENGTH 10
 

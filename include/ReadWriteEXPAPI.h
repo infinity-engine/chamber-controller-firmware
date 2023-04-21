@@ -52,6 +52,10 @@ public:
 
     bool loadExps(ConstantChargeDischarge *expArray);
     int bytesAvailable(Stream *stream);
+
+    uint32_t getFreeBytes();
+    void formatSD();
+    void sizeCheck();
 };
 
 #endif // ReadWriteEXPAPI_H

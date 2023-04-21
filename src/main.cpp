@@ -294,6 +294,7 @@ void setup()
     Serial.println(F("Trying to reinitialize."));
     delay(1000);
   }
+  api.sizeCheck();
   Serial.println(F("SD initialization success."));
 
   for (unsigned char i = 0; i < no_of_discharger_connected; i++)

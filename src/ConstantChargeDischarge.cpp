@@ -81,12 +81,18 @@ bool ConstantChargeDischarge::startCurrentSubExp()
     curExpStatus = EXP_RUNNING;
     overallStatus = EXP_RUNNING;
     setup();
+    timeReset();
     if (curRowIndex == 1 && currentMultiplierIndex == 1 && nthCurSubExp == 1)
     {
         // only if this is the first exp of first sub exp of first cycle
         expStartTime = millis();
+        if (expParamters.mode == DriveCycle)
+        {
+            expParamters.sampleIndicator = 1; // for the first time program expect that you already loaded the drivecycle and then call on this function
+            // this will also prevent on loading the drivecycle for the firsttime while inside performDriveCycle()
+            // cause time is ticking
+        }
     }
-    timeReset();
     return true;
 }
 

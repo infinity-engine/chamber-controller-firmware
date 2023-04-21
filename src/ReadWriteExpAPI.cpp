@@ -190,6 +190,7 @@ bool ReadWriteExpAPI::setUpNextSubExp(ConstantChargeDischarge *ccd)
 
 bool ReadWriteExpAPI::fillNextDriveCyclePortion(ConstantChargeDischarge *ccd, uint8_t n_samples)
 {
+    unsigned long t = millis();
     uint8_t cellIndex = ccd->parameters.cellId - 1;
     if (ccd->expParamters.mode != DriveCycle)
     {
@@ -218,7 +219,7 @@ bool ReadWriteExpAPI::fillNextDriveCyclePortion(ConstantChargeDischarge *ccd, ui
                 dcPtr[cellIndex] = 0;
                 file.seek(0);
             }
-            for (uint8_t i = 0; i < n_samples; i++)
+            for (unsigned int i = 0; i < n_samples; i++)
             {
                 if (dcPtr[cellIndex] == 0)
                 {
@@ -227,6 +228,11 @@ bool ReadWriteExpAPI::fillNextDriveCyclePortion(ConstantChargeDischarge *ccd, ui
                 file.readStringUntil(','); // to bypass the time column of the  first coulumn
                 float data = file.readStringUntil('\n').toFloat();
                 // Serial.println(data, 4);
+                if (i + 1 >= ccd->expParamters.total_n_samples)
+                {
+                    // Serial.println(i);
+                    break;
+                }
                 ccd->expParamters.samples_batch[i] = data;
                 if (!file.available())
                 {
@@ -245,6 +251,11 @@ bool ReadWriteExpAPI::fillNextDriveCyclePortion(ConstantChargeDischarge *ccd, ui
         return false;
     }
     file.close();
+    Serial.print(F("CH "));
+    Serial.print(ccd->parameters.cellId);
+    Serial.print(F(": Took "));
+    Serial.print(millis() - t);
+    Serial.println("ms to load DS.");
     return true;
 }
 
@@ -274,7 +285,7 @@ bool ReadWriteExpAPI::logReadings(ConstantChargeDischarge *ccd, char *row)
                 Serial.println(F("O/P dir exist. Remove failed."));
                 return false;
             }
-            Serial.println(F("Cleaned o/p dir."));
+            // Serial.println(F("Cleaned o/p dir."));
             cwd.close();
         }
         sd.chdir("/");
@@ -430,7 +441,7 @@ bool ReadWriteExpAPI::createDir(const char *dirName, bool clean)
             Serial.println(F("O/P dir exist. Remove failed."));
             return false;
         }
-        Serial.println(F("Cleaned o/p dir."));
+        // Serial.println(F("Cleaned o/p dir."));
         cwd.close();
         return createDir(dirName);
     }
@@ -491,6 +502,53 @@ int ReadWriteExpAPI::bytesAvailable(Stream *stream)
 }
 
 /**
+ * Reads the number of free bytes available on the SD card.
+ *
+ * This method uses the SdFat library to determine the number of free
+ * clusters on the SD card, and then calculates the total number of free
+ * bytes based on the block size of the volume. The resulting value is
+ * returned as a uint32_t.
+ *
+ * @return The number of free bytes on the SD card.
+ */
+uint32_t ReadWriteExpAPI::getFreeBytes()
+{
+    // Get the number of free clusters on the SD card
+    uint32_t freeClusters = sd.vol()->freeClusterCount();
+
+    // Calculate the total number of free bytes based on the volume's block size
+    uint32_t blockSize = sd.vol()->sectorsPerCluster() / 2;
+    uint32_t freeBytes = freeClusters * blockSize / 1024;
+
+    // Return the total number of free bytes
+    return freeBytes;
+}
+
+/**
+ * @brief Format a sd card
+ *
+ */
+void ReadWriteExpAPI::formatSD()
+{
+    sd.format();
+}
+
+void ReadWriteExpAPI::sizeCheck()
+{
+    uint32_t freeSize = getFreeBytes();
+    Serial.print(F("Available size "));
+    Serial.print(freeSize);
+    Serial.println(F("KB"));
+    if (freeSize <= 2000)
+    {
+        Serial.print(F("SD card almost full. Formatting ...."));
+        formatSD();
+    }
+    formatSD();
+    Serial.println(getFreeBytes());
+}
+
+/**
  * @brief Load the config and start it
  *
  * @param exps
@@ -531,20 +589,26 @@ bool ReadWriteExpAPI::loadExps(ConstantChargeDischarge *exps)
             entry.getName(name, MAX_EXP_NAME_LENGTH + 5);
             char *p = strtok(name, "_");
             p = strtok(NULL, "_");
-            int channenID = atoi(p);
+            int channelNo = atoi(p);
             Serial.print(F("Loading on channel "));
-            Serial.println(channenID);
+            Serial.println(channelNo);
 
-            exps[channenID - 1] = ConstantChargeDischarge(channenID);
+            exps[channelNo - 1] = ConstantChargeDischarge(channelNo);
 
-            if (setup(&exps[channenID - 1]) && exps[channenID - 1].placeNewSubExp(this))
+            if (setup(&exps[channelNo - 1]) && exps[channelNo - 1].placeNewSubExp(this))
             {
-                isExpLoaded[channenID - 1] = true;
+
+                isExpLoaded[channelNo - 1] = true;
+                if (exps[channelNo - 1].expParamters.mode == DriveCycle)
+                {
+                    if (!fillNextDriveCyclePortion(&exps[channelNo - 1]))
+                        isExpLoaded[channelNo - 1] = false;
+                }
             }
             else
             {
                 Serial.print(F("Loading failed on channel "));
-                Serial.println(channenID);
+                Serial.println(channelNo);
             }
         }
         entry.close();
