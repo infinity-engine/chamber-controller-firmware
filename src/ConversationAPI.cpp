@@ -64,6 +64,7 @@ bool ConversationAPI::isEXPAvailable()
 
 bool ConversationAPI::writeEXPConfig(ReadWriteExpAPI *api)
 {
+    Serial.println(F("Reading and writing it on SD Card...."));
     bool isExpNameReceived = false;
     while (true)
     {

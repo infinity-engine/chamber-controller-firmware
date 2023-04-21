@@ -532,7 +532,7 @@ bool ReadWriteExpAPI::loadExps(ConstantChargeDischarge *exps)
             char *p = strtok(name, "_");
             p = strtok(NULL, "_");
             int channenID = atoi(p);
-            Serial.print(F("Exp load on channel "));
+            Serial.print(F("Loading on channel "));
             Serial.println(channenID);
 
             exps[channenID - 1] = ConstantChargeDischarge(channenID);
@@ -540,6 +540,11 @@ bool ReadWriteExpAPI::loadExps(ConstantChargeDischarge *exps)
             if (setup(&exps[channenID - 1]) && exps[channenID - 1].placeNewSubExp(this))
             {
                 isExpLoaded[channenID - 1] = true;
+            }
+            else
+            {
+                Serial.print(F("Loading failed on channel "));
+                Serial.println(channenID);
             }
         }
         entry.close();
@@ -549,7 +554,7 @@ bool ReadWriteExpAPI::loadExps(ConstantChargeDischarge *exps)
     {
         if (isExpLoaded[i])
         {
-            exps[i + 1].startCurrentSubExp(); // start and reserve the channel
+            exps[i].startCurrentSubExp(); // start and reserve the channel
         }
     }
     return true;
