@@ -10,6 +10,8 @@ extern FsFile file;
 class ReadWriteExpAPI;
 class ConstantChargeDischarge;
 
+const unsigned int numChars = 300;
+
 class ConversationAPI
 {
 public:
@@ -26,5 +28,8 @@ public:
     void incrementMultiplier(uint8_t channelID, uint8_t rowId = 0);
     void setStatus(uint8_t status, uint8_t channelID = 0, uint8_t rowId = 0);
     bool isReadyToStartEXP(String chArray);
+    char receivedChars[numChars];
+    boolean newData = false;
+    void recvWithStartEndMarkers();
 };
 #endif

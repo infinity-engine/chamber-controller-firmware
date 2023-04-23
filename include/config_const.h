@@ -2,13 +2,13 @@
 #define CONFIG_CONST
 #include <Arduino.h>
 
-extern const uint8_t no_of_temp_sen_connected_cell[];
+extern uint8_t no_of_temp_sen_connected_cell[];
 extern const uint16_t temp_average_sample_count;
 extern const uint16_t vol_average_sample_count;
 extern const uint16_t cur_average_sample_count;
 extern const float acs_sensitivity;
 extern const float ntc_a, ntc_b, ntc_c;
-extern const uint8_t no_of_dht_sensor_connected;
+extern uint8_t no_of_dht_sensor_connected;
 extern const byte *const cell_temperature_addresses[];
 
 extern const byte cell_voltage_addresses[6];
@@ -33,8 +33,6 @@ extern const uint8_t cur_measure_pin_location_discharger[];
 extern const uint8_t no_of_discharger_connected;
 extern const int *const store[];
 
-extern const unsigned int sample_update_delay;//in ms;used to limit how frequently the experiment data are logged at the time of charging experiment
+extern const unsigned int sample_update_delay; // in ms;used to limit how frequently the experiment data are logged at the time of charging experiment
 
-
-
-#endif //CONFIG_CONST
+#endif // CONFIG_CONST

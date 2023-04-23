@@ -196,27 +196,6 @@ void runExp()
   }
 }
 
-void asAllExpFinished()
-{
-  uint8_t allStatusCombined = EXP_FINISHED;
-  for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
-  {
-    if (&exps[i] != NULL && exps[i].overallStatus == EXP_RUNNING)
-    {
-      return;
-    }
-    if (exps[i].overallStatus == EXP_STOPPED)
-    {
-      // if any of the exp is stopped in any channel then all combined status would be that
-      allStatusCombined = EXP_STOPPED;
-    }
-  }
-  Serial.println(F("All exps finished across all channels."));
-  cpi.sendMsgID("<END");
-  Serial2.print(allStatusCombined);
-  Serial2.print("\n>");
-}
-
 void test()
 {
   // api.reset((char *)"c7e7"); // set the expname
@@ -234,6 +213,52 @@ void test()
     delay(2000);
   }
   Serial.println(F("Exp Started."));
+}
+
+void asAllExpFinished()
+{
+  uint8_t allStatusCombined = EXP_FINISHED;
+  for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
+  {
+    if (&exps[i] != NULL && exps[i].overallStatus == EXP_RUNNING)
+    {
+      return;
+    }
+    if (exps[i].overallStatus == EXP_STOPPED)
+    {
+      // if any of the exp is stopped in any channel then all combined status would be that
+      allStatusCombined = EXP_STOPPED;
+    }
+  }
+  Serial.println(F("All exps finished across all channels."));
+  delay(1000);
+  cpi.sendMsgID("<END");
+  Serial2.print(allStatusCombined);
+  Serial2.print("\n>");
+  Serial.println(F("Sending data to cloud ...."));
+  cpi.clearInputBuffer();
+  while (true)
+  {
+    cpi.recvWithStartEndMarkers();
+    if (cpi.newData)
+    {
+      if (strcmp("SEND_OK", cpi.receivedChars) == 0)
+      {
+        Serial.println(F("Send data to cloud success."));
+      }
+      break;
+    }
+  }
+  Serial.println(F("Going to take a nap."));
+  Serial.print(F("Zzz.."));
+  for (uint8_t i = 0; i < 100; i++)
+  {
+    Serial.print(F("."));
+    delay(500);
+  }
+  Serial.println();
+  Serial.println(F("Woke up!"));
+  test();
 }
 
 void lcd_init()
@@ -301,6 +326,8 @@ void setup()
   {
     MCP[i].begin(chip_select_pin_location_discharger[i]);
   }
+
+  configureNoOfSensorConnected();
   // sd.ls("/",LS_R);
   // debug();
   test();

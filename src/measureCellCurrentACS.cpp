@@ -8,7 +8,7 @@ float measureCellCurrentACS(unsigned char cell_id)
     // return measured current in Ampere from ACS sensor
     // takes around 8ms/sample
     // 107 ms for 10 samples
-    float offset = 0.1804;//after calibration
+    float offset = 0; // after calibration
     float sum = 0.0;
     // set the proper channel for for mux to ads
     bool address[4];
@@ -18,12 +18,12 @@ float measureCellCurrentACS(unsigned char cell_id)
         address[i] = bitRead(tem, 7 - i);
     }
     channelTheMux(address);
-    delay(5);// give some time to acs to settle
+    delay(AcsSettleDelay); // give some time to acs to settle
     for (unsigned int i = 0; i < cur_average_sample_count; i++)
     {
-        sum += measureFromADS(cur_sen_ads_location[cell_id - 1]);//takes most of the time because of using adc
+        sum += measureFromADS(cur_sen_ads_location[cell_id - 1]); // takes most of the time because of using adc
     }
     float acsValue = float(sum / cur_average_sample_count);
-    //Serial.println(acsValue,5);
-    return float((2.5 - acsValue + offset) / acs_sensitivity);
+    // Serial.println(acsValue, 5);
+    return -float((2.5 - acsValue + offset) / acs_sensitivity);
 }

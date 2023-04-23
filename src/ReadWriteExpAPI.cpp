@@ -543,8 +543,8 @@ void ReadWriteExpAPI::sizeCheck()
     {
         Serial.print(F("SD card almost full. Formatting ...."));
         formatSD();
+        Serial.println(getFreeBytes());
     }
-    Serial.println(getFreeBytes());
 }
 
 /**

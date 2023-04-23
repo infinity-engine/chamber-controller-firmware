@@ -10,14 +10,20 @@ float measureChamberAverageTemperature()
     float sum = 0;
     for (unsigned char i = 0; i < no_of_dht_sensor_connected; i++)
     {
-        sum += measureChamberTemperature(&dht[i]);
+        sum += measureChamberTemperature(i);
     }
     return float(sum / no_of_dht_sensor_connected);
 }
-float measureChamberTemperature(DHT *sensor_id)
+/**
+ * @brief
+ *
+ * @param sensor_id 0-max
+ * @return float
+ */
+float measureChamberTemperature(uint8_t sensor_id)
 {
     // measures the chamber temperature(degC) with the help of DHT sensor
-    float t = sensor_id->readTemperature();
+    float t = dht[sensor_id].readTemperature();
     return t;
 }
 
@@ -27,13 +33,20 @@ float measureChamberAverageHumidity()
     float sum = 0;
     for (unsigned char i = 0; i < no_of_dht_sensor_connected; i++)
     {
-        sum += measureChamberHumidity(&dht[i]);
+        sum += measureChamberHumidity(i);
     }
     return float(sum / no_of_dht_sensor_connected);
 }
-float measureChamberHumidity(DHT *sensor_id)
+
+/**
+ * @brief measures chamber humidty
+ *
+ * @param sensor_id 0-max
+ * @return float in percent
+ */
+float measureChamberHumidity(uint8_t sensor_id)
 {
     // measures the chamber humidity(%) with the help of DHT sensor
-    float h = sensor_id->readHumidity();
+    float h = dht[sensor_id].readHumidity();
     return h;
 }

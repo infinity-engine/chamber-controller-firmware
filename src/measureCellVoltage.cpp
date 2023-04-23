@@ -17,6 +17,7 @@ float measureCellVoltage(unsigned char cell_id)
     }
     channelTheMux(address);
     // set the proper channel
+    delay(AcsSettleDelay); // give some time to acs to settle
     for (unsigned int i = 0; i < vol_average_sample_count; i++)
     {
         sum += measureFromADS(vol_sen_ads_location[cell_id - 1]);

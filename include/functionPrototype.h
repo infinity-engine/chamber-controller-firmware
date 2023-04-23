@@ -13,7 +13,7 @@ struct CellMeasurement
 {
     float current;
     float voltage;
-    float temperature[maxNoOfTempSensorPerCell];
+    float temperature[MaxNoTempSenPossible];
     float avgTemperature;
 };
 
@@ -59,8 +59,8 @@ float *measureCellTemperature(unsigned char cell_id, float *temps);
 float measureFromADS(unsigned char channel_id);
 float measureCellVoltage(unsigned char cell_id);
 float measureCellCurrentACS(unsigned char cell_id);
-float measureChamberTemperature(DHT *sensor_id);
-float measureChamberHumidity(DHT *sensor_id);
+float measureChamberTemperature(uint8_t);
+float measureChamberHumidity(uint8_t);
 float measureChamberAverageTemperature();
 float measureChamberAverageHumidity();
 void setChamberTemperature(float set_temp, float current_temp);
@@ -83,5 +83,6 @@ void log_(struct ExperimentParameters *exp);
 void dumpFile();
 bool lookAndStartExp(ReadWriteExpAPI *api, ConversationAPI *cpi, ConstantChargeDischarge *expArray);
 void asAllExpFinished();
+void configureNoOfSensorConnected();
 
 #endif // PROTOTYPE

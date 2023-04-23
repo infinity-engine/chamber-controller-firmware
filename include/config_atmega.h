@@ -3,6 +3,8 @@
 
 #define ISLOGENABLED false
 
+#define AcsSettleDelay 10
+
 #define adc0 0
 #define adc1 1
 #define adc2 2
@@ -15,9 +17,11 @@
 #define S3 39
 
 // temp sensor
-#define maxNoOfTempSensorPerCell 6
+#define MaxNoTempSenPossible 6
+#define TemperatureCutOffFilterLimit -20
 
 // DHT sensor
+#define MaxNoDhtSenPossible 4
 #define DHTPIN_1 29
 #define DHTPIN_2 27
 #define DHTPIN_3 25

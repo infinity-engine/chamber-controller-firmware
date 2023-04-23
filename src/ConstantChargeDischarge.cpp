@@ -531,13 +531,24 @@ void ConstantChargeDischarge::formRow(char *row)
     dtostrf(measurement.current, 3, 3, buff);
     strcat(row, buff);
 
-    strcat(row, ",");
-    dtostrf(chmMeas.avgTemp, 3, 3, buff);
-    strcat(row, buff);
-
-    strcat(row, ",");
-    dtostrf(chmMeas.avgHum, 3, 3, buff);
-    strcat(row, buff);
+    // this step is necessary to segegrate, data for json capcuture for cell temp senos capture
+    // has dependency on how the network units's convertRowIntoJsonPayload function work
+    if (no_of_dht_sensor_connected > 1)
+    {
+        strcat(row, ",");
+        dtostrf(chmMeas.avgTemp, 3, 3, buff);
+        strcat(row, buff);
+        strcat(row, ",");
+        dtostrf(chmMeas.avgHum, 3, 3, buff);
+        strcat(row, buff);
+    }
+    else
+    {
+        strcat(row, ",");
+        strcat(row, "NAN");
+        strcat(row, ",");
+        strcat(row, "NAN");
+    }
 
     for (uint8_t i = 0; i < no_of_temp_sen_connected_cell[parameters.cellId - 1]; i++)
     {

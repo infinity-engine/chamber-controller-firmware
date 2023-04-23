@@ -7,7 +7,7 @@ float *measureCellTemperature(unsigned char cell_id, float *temps)
     // cell_id starts from 1,2...6
     // time consumption = 8ms/sample/sensor
 
-    //6 sensors and 2 samples == 97ms
+    // 6 sensors and 2 samples == 97ms
 
     float V_0 = 5.0;      // Volt
     float R_1 = 200000.0; // ohm
@@ -23,12 +23,13 @@ float *measureCellTemperature(unsigned char cell_id, float *temps)
         float sum = 0;
         bool address[4];
         byte tem = pgm_read_byte(&T_Address[curr_sen]);
-        
+
         for (uint8_t i = 0; i < 4; i++)
         {
             address[i] = bitRead(tem, 7 - i);
         }
         channelTheMux(address);
+        delay(AcsSettleDelay); // give some time to acs to settle
         for (unsigned int i = 0; i < temp_average_sample_count; i++)
         {
             raw = measureFromADS(tem_sen_ads_location[cell_id][curr_sen]);
@@ -45,6 +46,7 @@ float *measureCellTemperature(unsigned char cell_id, float *temps)
     }
     return temps;
 }
+
 float measureAvgCellTemp(unsigned char cell_id, float *result_arr)
 {
     float temps[no_of_temp_sen_connected_cell[cell_id - 1]];
