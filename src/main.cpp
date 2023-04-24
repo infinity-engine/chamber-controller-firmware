@@ -43,62 +43,8 @@ FsFile file;
 #define LCD
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-LiquidCrystal_I2C lcd(0x27, 20, 4);
 #endif
-byte zero[] = {
-    B00000,
-    B00000,
-    B00000,
-    B00000,
-    B00000,
-    B00000,
-    B00000,
-    B00000};
-byte one[] = {
-    B10000,
-    B10000,
-    B10000,
-    B10000,
-    B10000,
-    B10000,
-    B10000,
-    B10000};
-byte two[] = {
-    B11000,
-    B11000,
-    B11000,
-    B11000,
-    B11000,
-    B11000,
-    B11000,
-    B11000};
-byte three[] = {
-    B11100,
-    B11100,
-    B11100,
-    B11100,
-    B11100,
-    B11100,
-    B11100,
-    B11100};
-byte four[] = {
-    B11110,
-    B11110,
-    B11110,
-    B11110,
-    B11110,
-    B11110,
-    B11110,
-    B11110};
-byte five[] = {
-    B11111,
-    B11111,
-    B11111,
-    B11111,
-    B11111,
-    B11111,
-    B11111,
-    B11111};
+extern LiquidCrystal_I2C lcd;
 
 DHT dht[] = {{DHTPIN_1, DHTTYPE_1}, {DHTPIN_2, DHTTYPE_2}, {DHTPIN_3, DHTTYPE_3}, {DHTPIN_4, DHTTYPE_4}};
 
@@ -200,7 +146,6 @@ void test()
 {
   // api.reset((char *)"c7e7"); // set the expname
   // api.loadExps(exps);
-
   for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
   {
     ConstantChargeDischarge exp;
@@ -210,9 +155,18 @@ void test()
   while (!lookAndStartExp(&api, &cpi, exps))
   {
     Serial.println(F("Retrying to get exp."));
+    clearLine(2);
+    lcd.print(F("Trying to get exp..."));
     delay(2000);
   }
   Serial.println(F("Exp Started."));
+  lcd.clear();
+  clearLine(0);
+  lcd.print(F("Ongoing Tests"));
+  clearLine(1);
+  lcd.print(F("C1:_ C2:_ C3:_ C4:_"));
+  clearLine(2);
+  lcd.print(F("C5:_ C6:_"));
 }
 
 void asAllExpFinished()
@@ -230,12 +184,17 @@ void asAllExpFinished()
       allStatusCombined = EXP_STOPPED;
     }
   }
+  updateLCDView(true);
   Serial.println(F("All exps finished across all channels."));
+  clearLine(3);
+  lcd.print(F("All finsished"));
   delay(1000);
   cpi.sendMsgID("<END");
   Serial2.print(allStatusCombined);
   Serial2.print("\n>");
   Serial.println(F("Sending data to cloud ...."));
+  clearLine(3);
+  lcd.print(F("Send data -> cloud"));
   cpi.clearInputBuffer();
   while (true)
   {
@@ -245,49 +204,40 @@ void asAllExpFinished()
       if (strcmp("SEND_OK", cpi.receivedChars) == 0)
       {
         Serial.println(F("Send data to cloud success."));
+        clearLine(3);
+        lcd.print(F("Send data -> OK"));
       }
       break;
     }
   }
+  delay(1000);
   Serial.println(F("Going to take a nap."));
   Serial.print(F("Zzz.."));
+  lcd.clear();
+  clearLine(3);
+  lcd.print(F("Zzz......."));
   for (uint8_t i = 0; i < 100; i++)
   {
     Serial.print(F("."));
     delay(500);
   }
   Serial.println();
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(F("Woke up!"));
   Serial.println(F("Woke up!"));
+  delay(2000);
+  clearLine(0);
+  lcd.print(F("Battery Test Chamber"));
   test();
 }
 
-void lcd_init()
+void blink(int _delay = 50)
 {
-  lcd.init(); // initialise the lcd
-  lcd.createChar(0, zero);
-  lcd.createChar(1, one);
-  lcd.createChar(2, two);
-  lcd.createChar(3, three);
-  lcd.createChar(4, four);
-  lcd.createChar(5, five);
-  lcd.backlight(); // turn on backlight
-  lcd.clear();
-  lcd.setCursor(0, 0); // column,row
-  lcd.print(F("Battery Test Chamber"));
-  delay(100);
-  lcd.setCursor(0, 2);
-  lcd.print(F("Starting Engine"));
-  for (uint8_t i = 0; i < 80; i++)
-  {
-    updateProgressBar(i, 80, 3);
-    delay(1);
-  }
-  delay(1000);
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(F("Battery Test Chamber"));
-  lcd.setCursor(0, 2);
-  lcd.print(F("Ready!"));
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(_delay);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(_delay);
 }
 
 void setup()
@@ -295,15 +245,21 @@ void setup()
   // debug_init();
   Serial.begin(2000000);
   Serial.println(F("Starting Engine !!"));
-  Serial.print("Free SRAM ");
-  Serial.print(getFreeSram());
-  Serial.println(" Bytes");
-  pinInit();
-  while (!Serial)
+  if (ISLOGENABLED)
   {
-    ; // wait for serial port to connect. Needed for native USB port only
+    Serial.print("Free SRAM ");
+    Serial.print(getFreeSram());
+    Serial.println(" Bytes");
   }
-  // lcd_init();
+
+  blink();
+  pinInit();
+  lcd_init();
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(F("Battery Test Chamber"));
+
+  blink();
   while (!ads.begin())
   {
     Serial.println(F("ADS initialization failed."));
@@ -311,7 +267,12 @@ void setup()
     Serial.println(F("Trying to reinitialize."));
     delay(1000);
   }
+
+  clearLine(2);
+  lcd.print(F("ADS OK"));
   Serial.println(F("ADS initialization success."));
+
+  blink();
   while (!sd.begin(SD_CONFIG))
   {
     Serial.println(F("SD initialization failed."));
@@ -321,15 +282,20 @@ void setup()
   }
   api.sizeCheck();
   Serial.println(F("SD initialization success."));
-
+  clearLine(2);
+  lcd.print(F("SD OK"));
   for (unsigned char i = 0; i < no_of_discharger_connected; i++)
   {
     MCP[i].begin(chip_select_pin_location_discharger[i]);
   }
 
   configureNoOfSensorConnected();
-  // sd.ls("/",LS_R);
-  // debug();
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(F("Battery Test Chamber"));
+  lcd.setCursor(0, 2);
+  lcd.print(F("Ready!"));
+  blink(2000);
   test();
 }
 
@@ -337,4 +303,5 @@ void loop()
 {
   // put your main code here, to run repeatedly:
   runExp();
+  updateLCDView();
 }

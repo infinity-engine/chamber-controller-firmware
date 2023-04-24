@@ -5,6 +5,9 @@
 
 void pinInit()
 {
+
+    pinMode(LED_BUILTIN, OUTPUT);
+    
     for (unsigned char i = 0; i < no_of_discharger_connected; i++)
     {
         pinMode(fan_control_pin_location_discharger[i], OUTPUT);
@@ -23,6 +26,8 @@ void pinInit()
     pinMode(S1, OUTPUT);
     pinMode(S2, OUTPUT);
     pinMode(S3, OUTPUT);
+    bool address[] = {false, false, false, false};
+    channelTheMux(address);
 
     // esp-interrupt control
     pinMode(ESP_INT_PIN, OUTPUT);

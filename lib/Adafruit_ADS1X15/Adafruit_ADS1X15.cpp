@@ -35,10 +35,11 @@
     @brief  Instantiates a new ADS1015 class w/appropriate properties
 */
 /**************************************************************************/
-Adafruit_ADS1015::Adafruit_ADS1015() {
+Adafruit_ADS1015::Adafruit_ADS1015()
+{
   m_bitShift = 4;
-  m_gain = GAIN_TWOTHIRDS; /* +/- 6.144V range (limited to VDD +0.3V max!) */
-  m_dataRate = RATE_ADS1015_1600SPS;//modified by infinity-engine for the fastest rate
+  m_gain = GAIN_TWOTHIRDS;           /* +/- 6.144V range (limited to VDD +0.3V max!) */
+  m_dataRate = RATE_ADS1015_1600SPS; // modified by infinity-engine for the fastest rate
 }
 
 /**************************************************************************/
@@ -46,10 +47,11 @@ Adafruit_ADS1015::Adafruit_ADS1015() {
     @brief  Instantiates a new ADS1115 class w/appropriate properties
 */
 /**************************************************************************/
-Adafruit_ADS1115::Adafruit_ADS1115() {
+Adafruit_ADS1115::Adafruit_ADS1115()
+{
   m_bitShift = 0;
-  m_gain = GAIN_TWOTHIRDS; /* +/- 6.144V range (limited to VDD +0.3V max!) */
-  m_dataRate = RATE_ADS1115_860SPS;
+  m_gain = GAIN_TWOTHIRDS;          /* +/- 6.144V range (limited to VDD +0.3V max!) */
+  m_dataRate = RATE_ADS1115_860SPS; // modified by infinity-engine for the fastest rate
 }
 
 /**************************************************************************/
@@ -62,7 +64,8 @@ Adafruit_ADS1115::Adafruit_ADS1115() {
     @return true if successful, otherwise false
 */
 /**************************************************************************/
-bool Adafruit_ADS1X15::begin(uint8_t i2c_addr, TwoWire *wire) {
+bool Adafruit_ADS1X15::begin(uint8_t i2c_addr, TwoWire *wire)
+{
   m_i2c_dev = new Adafruit_I2CDevice(i2c_addr, wire);
   return m_i2c_dev->begin();
 }
@@ -112,8 +115,10 @@ uint16_t Adafruit_ADS1X15::getDataRate() { return m_dataRate; }
     @return the ADC reading
 */
 /**************************************************************************/
-int16_t Adafruit_ADS1X15::readADC_SingleEnded(uint8_t channel) {
-  if (channel > 3) {
+int16_t Adafruit_ADS1X15::readADC_SingleEnded(uint8_t channel)
+{
+  if (channel > 3)
+  {
     return 0;
   }
 
@@ -137,7 +142,8 @@ int16_t Adafruit_ADS1X15::readADC_SingleEnded(uint8_t channel) {
     @return the ADC reading
 */
 /**************************************************************************/
-int16_t Adafruit_ADS1X15::readADC_Differential_0_1() {
+int16_t Adafruit_ADS1X15::readADC_Differential_0_1()
+{
   startADCReading(ADS1X15_REG_CONFIG_MUX_DIFF_0_1, /*continuous=*/false);
 
   // Wait for the conversion to complete
@@ -157,7 +163,8 @@ int16_t Adafruit_ADS1X15::readADC_Differential_0_1() {
     @return the ADC reading
 */
 /**************************************************************************/
-int16_t Adafruit_ADS1X15::readADC_Differential_0_3() {
+int16_t Adafruit_ADS1X15::readADC_Differential_0_3()
+{
   startADCReading(ADS1X15_REG_CONFIG_MUX_DIFF_0_3, /*continuous=*/false);
 
   // Wait for the conversion to complete
@@ -177,7 +184,8 @@ int16_t Adafruit_ADS1X15::readADC_Differential_0_3() {
     @return the ADC reading
 */
 /**************************************************************************/
-int16_t Adafruit_ADS1X15::readADC_Differential_1_3() {
+int16_t Adafruit_ADS1X15::readADC_Differential_1_3()
+{
   startADCReading(ADS1X15_REG_CONFIG_MUX_DIFF_1_3, /*continuous=*/false);
 
   // Wait for the conversion to complete
@@ -198,7 +206,8 @@ int16_t Adafruit_ADS1X15::readADC_Differential_1_3() {
     @return the ADC reading
 */
 /**************************************************************************/
-int16_t Adafruit_ADS1X15::readADC_Differential_2_3() {
+int16_t Adafruit_ADS1X15::readADC_Differential_2_3()
+{
   startADCReading(ADS1X15_REG_CONFIG_MUX_DIFF_2_3, /*continuous=*/false);
 
   // Wait for the conversion to complete
@@ -222,7 +231,8 @@ int16_t Adafruit_ADS1X15::readADC_Differential_2_3() {
 */
 /**************************************************************************/
 void Adafruit_ADS1X15::startComparator_SingleEnded(uint8_t channel,
-                                                   int16_t threshold) {
+                                                   int16_t threshold)
+{
   // Start with default values
   uint16_t config =
       ADS1X15_REG_CONFIG_CQUE_1CONV |   // Comparator enabled and asserts on 1
@@ -258,15 +268,20 @@ void Adafruit_ADS1X15::startComparator_SingleEnded(uint8_t channel,
     @return the last ADC reading
 */
 /**************************************************************************/
-int16_t Adafruit_ADS1X15::getLastConversionResults() {
+int16_t Adafruit_ADS1X15::getLastConversionResults()
+{
   // Read the conversion results
   uint16_t res = readRegister(ADS1X15_REG_POINTER_CONVERT) >> m_bitShift;
-  if (m_bitShift == 0) {
+  if (m_bitShift == 0)
+  {
     return (int16_t)res;
-  } else {
+  }
+  else
+  {
     // Shift 12-bit results right 4 bits for the ADS1015,
     // making sure we keep the sign bit intact
-    if (res > 0x07FF) {
+    if (res > 0x07FF)
+    {
       // negative number - extend the sign to 16th bit
       res |= 0xF000;
     }
@@ -283,10 +298,12 @@ int16_t Adafruit_ADS1X15::getLastConversionResults() {
     @return the ADC reading in volts
 */
 /**************************************************************************/
-float Adafruit_ADS1X15::computeVolts(int16_t counts) {
+float Adafruit_ADS1X15::computeVolts(int16_t counts)
+{
   // see data sheet Table 3
   float fsRange;
-  switch (m_gain) {
+  switch (m_gain)
+  {
   case GAIN_TWOTHIRDS:
     fsRange = 6.144f;
     break;
@@ -325,7 +342,8 @@ float Adafruit_ADS1X15::computeVolts(int16_t counts) {
     @param continuous continuous if set, otherwise single shot
 */
 /**************************************************************************/
-void Adafruit_ADS1X15::startADCReading(uint16_t mux, bool continuous) {
+void Adafruit_ADS1X15::startADCReading(uint16_t mux, bool continuous)
+{
   // Start with default values
   uint16_t config =
       ADS1X15_REG_CONFIG_CQUE_1CONV |   // Set CQUE to any value other than
@@ -334,9 +352,12 @@ void Adafruit_ADS1X15::startADCReading(uint16_t mux, bool continuous) {
       ADS1X15_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
       ADS1X15_REG_CONFIG_CMODE_TRAD;    // Traditional comparator (default val)
 
-  if (continuous) {
+  if (continuous)
+  {
     config |= ADS1X15_REG_CONFIG_MODE_CONTIN;
-  } else {
+  }
+  else
+  {
     config |= ADS1X15_REG_CONFIG_MODE_SINGLE;
   }
 
@@ -367,7 +388,8 @@ void Adafruit_ADS1X15::startADCReading(uint16_t mux, bool continuous) {
     @return True if conversion is complete, false otherwise.
 */
 /**************************************************************************/
-bool Adafruit_ADS1X15::conversionComplete() {
+bool Adafruit_ADS1X15::conversionComplete()
+{
   return (readRegister(ADS1X15_REG_POINTER_CONFIG) & 0x8000) != 0;
 }
 
@@ -379,7 +401,8 @@ bool Adafruit_ADS1X15::conversionComplete() {
     @param value value to write to register
 */
 /**************************************************************************/
-void Adafruit_ADS1X15::writeRegister(uint8_t reg, uint16_t value) {
+void Adafruit_ADS1X15::writeRegister(uint8_t reg, uint16_t value)
+{
   buffer[0] = reg;
   buffer[1] = value >> 8;
   buffer[2] = value & 0xFF;
@@ -395,7 +418,8 @@ void Adafruit_ADS1X15::writeRegister(uint8_t reg, uint16_t value) {
     @return 16 bit register value read
 */
 /**************************************************************************/
-uint16_t Adafruit_ADS1X15::readRegister(uint8_t reg) {
+uint16_t Adafruit_ADS1X15::readRegister(uint8_t reg)
+{
   buffer[0] = reg;
   m_i2c_dev->write(buffer, 1);
   m_i2c_dev->read(buffer, 2);

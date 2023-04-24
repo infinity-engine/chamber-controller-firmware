@@ -3,7 +3,7 @@
 
 #define ISLOGENABLED false
 
-#define AcsSettleDelay 10
+#define AcsSettleDelay 5
 
 #define adc0 0
 #define adc1 1

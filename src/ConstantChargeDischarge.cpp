@@ -524,11 +524,11 @@ void ConstantChargeDischarge::formRow(char *row)
     strcat(row, buff);
 
     strcat(row, ",");
-    dtostrf(measurement.voltage, 3, 3, buff);
+    dtostrf(measurement.voltage, 3, 2, buff);
     strcat(row, buff);
 
     strcat(row, ",");
-    dtostrf(measurement.current, 3, 3, buff);
+    dtostrf(measurement.current, 3, 2, buff);
     strcat(row, buff);
 
     // this step is necessary to segegrate, data for json capcuture for cell temp senos capture
@@ -536,10 +536,10 @@ void ConstantChargeDischarge::formRow(char *row)
     if (no_of_dht_sensor_connected > 1)
     {
         strcat(row, ",");
-        dtostrf(chmMeas.avgTemp, 3, 3, buff);
+        dtostrf(chmMeas.avgTemp, 2, 1, buff);
         strcat(row, buff);
         strcat(row, ",");
-        dtostrf(chmMeas.avgHum, 3, 3, buff);
+        dtostrf(chmMeas.avgHum, 2, 1, buff);
         strcat(row, buff);
     }
     else
@@ -553,7 +553,7 @@ void ConstantChargeDischarge::formRow(char *row)
     for (uint8_t i = 0; i < no_of_temp_sen_connected_cell[parameters.cellId - 1]; i++)
     {
         strcat(row, ",");
-        dtostrf(measurement.temperature[i], 2, 2, buff);
+        dtostrf(measurement.temperature[i], 2, 1, buff);
         strcat(row, buff);
     }
 }

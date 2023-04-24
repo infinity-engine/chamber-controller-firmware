@@ -84,5 +84,8 @@ void dumpFile();
 bool lookAndStartExp(ReadWriteExpAPI *api, ConversationAPI *cpi, ConstantChargeDischarge *expArray);
 void asAllExpFinished();
 void configureNoOfSensorConnected();
-
+void clearLine(uint8_t line);
+void lcd_init();
+void updateLCDView(bool force=false);
+void handleStatusForChannel(uint8_t channelId, uint8_t y, uint8_t x);
 #endif // PROTOTYPE
