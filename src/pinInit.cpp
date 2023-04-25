@@ -2,12 +2,13 @@
 #include "config_atmega.h"
 #include "config_const.h"
 #include "functionPrototype.h"
-
+#include <DHT.h>
+extern DHT dht[];
 void pinInit()
 {
 
     pinMode(LED_BUILTIN, OUTPUT);
-    
+
     for (unsigned char i = 0; i < no_of_discharger_connected; i++)
     {
         pinMode(fan_control_pin_location_discharger[i], OUTPUT);
@@ -36,4 +37,9 @@ void pinInit()
     // for atmega inteerupts
     pinMode(ATMEGA_INT_PIN, INPUT);
     // attachInterrupt(digitalPinToInterrupt(ATMEGA_INT_PIN), void, RISING);
+
+    for (uint8_t i = 0; i < no_of_dht_sensor_connected; i++)
+    {
+        dht[i].begin();
+    }
 }

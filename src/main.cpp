@@ -194,7 +194,7 @@ void asAllExpFinished()
   Serial2.print("\n>");
   Serial.println(F("Sending data to cloud ...."));
   clearLine(3);
-  lcd.print(F("Send data -> cloud"));
+  lcd.print(F("Data -> cloud"));
   cpi.clearInputBuffer();
   while (true)
   {
@@ -205,9 +205,9 @@ void asAllExpFinished()
       {
         Serial.println(F("Send data to cloud success."));
         clearLine(3);
-        lcd.print(F("Send data -> OK"));
+        lcd.print(F("Cloud -> OK"));
+        break;
       }
-      break;
     }
   }
   delay(1000);

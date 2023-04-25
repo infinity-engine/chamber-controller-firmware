@@ -134,10 +134,12 @@ void lcd_init()
     lcd.createChar(3, three);
     lcd.createChar(4, four);
     lcd.createChar(5, five);
+
     lcd.createChar(6, customChar1);
     lcd.createChar(7, customChar2);
     lcd.createChar(8, customChar3);
     lcd.createChar(9, customChar4);
+
     lcd.createChar(10, completeChar);
     lcd.createChar(11, pausedChar);
     lcd.createChar(12, stopChar);
@@ -190,7 +192,7 @@ void handleStatusForChannel(uint8_t channelId, uint8_t y, uint8_t x)
 {
     static uint8_t prevFanPos[6] = {6, 7, 8, 9, 8, 7}; // randomized
     channelId--;
-    lcd.setCursor(3, 1);
+    lcd.setCursor(y, x);
     if (&exps[channelId])
     {
         if (exps[channelId].overallStatus == EXP_RUNNING)

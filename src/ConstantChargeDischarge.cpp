@@ -533,7 +533,8 @@ void ConstantChargeDischarge::formRow(char *row)
 
     // this step is necessary to segegrate, data for json capcuture for cell temp senos capture
     // has dependency on how the network units's convertRowIntoJsonPayload function work
-    if (no_of_dht_sensor_connected > 1)
+
+    if (no_of_dht_sensor_connected > 0)
     {
         strcat(row, ",");
         dtostrf(chmMeas.avgTemp, 2, 1, buff);
