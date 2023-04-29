@@ -622,3 +622,50 @@ bool ReadWriteExpAPI::loadExps(ConstantChargeDischarge *exps)
     }
     return true;
 }
+
+/**
+ * Sends the file name and data over serial port.
+ *
+ * @param file: The file to be sent.
+ */
+void ReadWriteExpAPI::sendFile(File file)
+{
+    char filename[25];
+    file.getName(filename, sizeof(filename));
+    Serial.println(filename);
+    Serial.write(':');
+    while (file.available())
+    {
+        Serial.write(file.read());
+    }
+}
+
+/**
+ * Sends the contents of the directory over serial port.
+ *
+ * @param dirname: The name of the directory to be sent.
+ */
+void ReadWriteExpAPI::sendDirectory(String dirname)
+{
+    File dir_ = sd.open(dirname);
+    while (true)
+    {
+        File file_ = dir_.openNextFile();
+        if (!file_)
+        {
+            break;
+        }
+        if (file_.isDirectory())
+        {
+            char filename[25];
+            file_.getName(filename, sizeof(filename));
+            sendDirectory(dirname + "/" + filename);
+        }
+        else
+        {
+            sendFile(file_);
+        }
+        file_.close();
+    }
+    dir_.close();
+}

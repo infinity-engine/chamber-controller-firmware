@@ -56,6 +56,8 @@ public:
     uint32_t getFreeBytes();
     void formatSD();
     void sizeCheck();
+    void sendFile(File file);
+    void sendDirectory(String dir);
 };
 
 #endif // ReadWriteEXPAPI_H

@@ -245,6 +245,7 @@ void setup()
   // debug_init();
   Serial.begin(2000000);
   Serial.println(F("Starting Engine !!"));
+
   if (ISLOGENABLED)
   {
     Serial.print("Free SRAM ");
@@ -294,8 +295,39 @@ void setup()
   lcd.setCursor(0, 0);
   lcd.print(F("Battery Test Chamber"));
   lcd.setCursor(0, 2);
-  lcd.print(F("Ready!"));
-  blink(2000);
+  lcd.print(F("Waiting for INS!"));
+  unsigned long t = millis();
+  while (millis() < t + 2000)
+  {
+    if (Serial.available())
+    {
+      String code = Serial.readStringUntil('\n');
+      Serial.print(F("Received Code :"));
+      Serial.println(code);
+      if (code == "CAL")
+      {
+        // send the device in callibration mode
+        // which is on chargin
+        Serial.println(F("Gone into callibration."));
+        for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
+        {
+          setCellChargeDischarge(i + 1, relay_cell_charge);
+          while (true)
+          {
+            /* code */
+          }
+        }
+      }
+      else
+      {
+        // read the file name and send everycontetn of it
+        api.sendDirectory(code);
+      }
+    }
+  }
+
+  // blink(2000);
+  lcd.setCursor(0, 2);
   test();
 }
 

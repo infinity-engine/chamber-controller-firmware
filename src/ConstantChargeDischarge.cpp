@@ -2,6 +2,8 @@
 #include "ReadWriteEXPAPI.h"
 #include "ConversationAPI.h"
 #define LIMIT_TO_BE_CHECK false
+#include <LiquidCrystal_I2C.h>
+extern LiquidCrystal_I2C lcd;
 
 ConstantChargeDischarge::ConstantChargeDischarge(uint8_t channelId)
 {
@@ -61,6 +63,31 @@ bool ConstantChargeDischarge::placeNewSubExp(ReadWriteExpAPI *api)
         status = false;
         ISLOGENABLED ? Serial.println(F("Failed")) : 0;
     }
+    // wait for ambient to reach to desred condition
+    float t = measureChamberAverageTemperature();
+    bool flag = true;
+    while (!isnan(t) && !(t < ambTemp + 0.5 && t > ambTemp - 0.5))
+    {
+        if (flag)
+        {
+            clearLine(2);
+            lcd.print(F("Achieving amb cond."));
+            flag = false;
+        }
+        clearLine(3);
+        lcd.print(F("Amb:"));
+        lcd.print(t);
+        lcd.write(0xDF);
+        lcd.print(F("C->"));
+        lcd.print(ambTemp);
+        lcd.write(0xDF);
+        lcd.print(F("C"));
+        t = measureChamberAverageTemperature();
+        setChamberTemperature(ambTemp, t);
+        delay(2000);
+    }
+    clearLine(3);
+
     return status;
 }
 
@@ -249,6 +276,9 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
     measurement.voltage = measureCellVoltage(parameters.cellId); // 39ms for for 5 samples
     chmMeas.avgHum = measureChamberAverageHumidity();
     chmMeas.avgTemp = measureChamberAverageTemperature();
+
+    if (isnan(!chmMeas.avgTemp))
+        setChamberTemperature(ambTemp, chmMeas.avgTemp);
 
     unsigned char status = EXP_RUNNING;
     unsigned long curTime = millis();

@@ -34,6 +34,12 @@ void pinInit()
     pinMode(ESP_INT_PIN, OUTPUT);
     digitalWrite(ESP_INT_PIN, LOW);
 
+    pinMode(chamber_cooler_relay_pin, OUTPUT);
+    pinMode(chamber_heater_relay_pin, OUTPUT);
+
+    digitalWrite(chamber_cooler_relay_pin, relay_off);
+    digitalWrite(chamber_heater_relay_pin, relay_off);
+
     // for atmega inteerupts
     pinMode(ATMEGA_INT_PIN, INPUT);
     // attachInterrupt(digitalPinToInterrupt(ATMEGA_INT_PIN), void, RISING);

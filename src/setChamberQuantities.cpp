@@ -2,7 +2,6 @@
 #include "functionPrototype.h"
 #include "config_const.h"
 
-
 void setChamberTemperature(float set_temp, float current_temp)
 {
     // sets the desirable temperature of the chamber
