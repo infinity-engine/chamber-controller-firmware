@@ -296,6 +296,7 @@ void setup()
   lcd.print(F("Battery Test Chamber"));
   lcd.setCursor(0, 2);
   lcd.print(F("Waiting for INS!"));
+  Serial.print(F("Waiting for INS!"));
   unsigned long t = millis();
   while (millis() < t + 2000)
   {
