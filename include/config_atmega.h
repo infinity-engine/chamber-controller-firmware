@@ -51,7 +51,7 @@
 #define ConstantPowerCharge 5
 #define ConstantPowerDischarge 6
 #define DriveCycle 7
-#define Rest 8
+#define _Rest 8
 #define Hold 9
 
 #define N_CELL_CAPABLE 6

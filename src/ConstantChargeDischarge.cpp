@@ -188,7 +188,7 @@ void ConstantChargeDischarge::setup()
         takeApprActForDischFan(parameters.cellId, true, true);
         expParamters.sampleIndicator = 0; // for drivecycle reset back to beginning
         break;
-    case Rest:
+    case _Rest:
         setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
         setDischargerCurrent(parameters.cellId, 0);
         break;
@@ -232,7 +232,7 @@ void ConstantChargeDischarge::finish()
         setChargerCurrent(parameters.cellId, 0);
         takeApprActForDischFan(parameters.cellId, true, false);
         break;
-    case Rest:
+    case _Rest:
         setCellChargeDischarge(parameters.cellId, relay_cell_discharge);
         setDischargerCurrent(parameters.cellId, 0);
         setChargerCurrent(parameters.cellId, 0);
@@ -365,7 +365,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
     case DriveCycle:
         status = perFormDriveCycle(api);
         break;
-    case Rest:
+    case _Rest:
         // do nothing only just mark measurement,
         // outside time check will automaticly check it
         measurement.current = getDischargerCurrent(parameters.cellId);
