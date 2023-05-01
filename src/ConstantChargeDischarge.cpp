@@ -1,6 +1,7 @@
 #include "ConstantChargeDischarge.h"
 #include "ReadWriteEXPAPI.h"
 #include "ConversationAPI.h"
+#include "functionPrototype.h"
 #define LIMIT_TO_BE_CHECK false
 #include <LiquidCrystal_I2C.h>
 extern LiquidCrystal_I2C lcd;
@@ -205,6 +206,7 @@ void ConstantChargeDischarge::setup()
 void ConstantChargeDischarge::finish()
 {
     // set of instruction after stopping of the experiment
+    restChamber();
     switch (expParamters.mode)
     {
     case ConstantCurrentCharge:

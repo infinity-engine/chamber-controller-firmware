@@ -86,6 +86,7 @@ void asAllExpFinished();
 void configureNoOfSensorConnected();
 void clearLine(uint8_t line);
 void lcd_init();
-void updateLCDView(bool force=false);
+void updateLCDView(bool force = false);
 void handleStatusForChannel(uint8_t channelId, uint8_t y, uint8_t x);
+void restChamber();
 #endif // PROTOTYPE
