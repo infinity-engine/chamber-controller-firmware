@@ -73,20 +73,29 @@ bool ConstantChargeDischarge::placeNewSubExp(ReadWriteExpAPI *api)
         {
             clearLine(2);
             lcd.print(F("Achieving amb cond."));
+            Serial.println(F("Waiting for ambient condition to satisfy...."));
             flag = false;
         }
         clearLine(3);
         lcd.print(F("Amb:"));
+        Serial.print(F("\rAmb"));
         lcd.print(t);
+        Serial.print(t);
         lcd.write(0xDF);
+        Serial.print(0xDF);
         lcd.print(F("C->"));
+        Serial.print(F("C->"));
         lcd.print(ambTemp);
+        Serial.print(ambTemp);
         lcd.write(0xDF);
+        Serial.print(0xDF);
         lcd.print(F("C"));
+        Serial.println(F("C"));
         t = measureChamberAverageTemperature();
         setChamberTemperature(ambTemp, t);
         delay(2000);
     }
+    Serial.println();
     clearLine(3);
 
     return status;
