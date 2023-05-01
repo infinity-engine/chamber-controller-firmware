@@ -21,3 +21,9 @@ void setChamberTemperature(float set_temp, float current_temp)
         controlRelay(chamber_heater_relay_pin, relay_off);
     }
 }
+
+void restChamber()
+{
+    controlRelay(chamber_cooler_relay_pin, relay_off);
+    controlRelay(chamber_heater_relay_pin, relay_off);
+}

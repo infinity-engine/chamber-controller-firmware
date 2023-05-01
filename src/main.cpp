@@ -313,10 +313,10 @@ void setup()
         for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
         {
           setCellChargeDischarge(i + 1, relay_cell_charge);
-          while (true)
-          {
-            /* code */
-          }
+        }
+        while (true)
+        {
+          /* code */
         }
       }
       else
@@ -328,7 +328,7 @@ void setup()
   }
 
   // blink(2000);
-  lcd.setCursor(0, 2);
+  clearLine(2);
   test();
 }
 
