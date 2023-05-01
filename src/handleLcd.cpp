@@ -186,18 +186,15 @@ void updateLCDView(bool force)
         handleStatusForChannel(5, 3, 2);
         handleStatusForChannel(6, 8, 2);
     }
-    clearLine(3);
     for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
     {
         if (&exps[i] && exps[i].overallStatus == EXP_RUNNING)
         {
-            lcd.print(F("T: "));
+            lcd.setCursor(2, 3);
             lcd.print(exps[i].chmMeas.avgTemp);
             lcd.write(0xDF);
-            lcd.print(F("C | "));
-            lcd.print(F("H: "));
+            lcd.setCursor(14, 3);
             lcd.print(exps[i].chmMeas.avgHum);
-            lcd.print(F(" %"));
         }
     }
 }

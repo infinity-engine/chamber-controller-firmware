@@ -167,6 +167,10 @@ void test()
   lcd.print(F("C1:_ C2:_ C3:_ C4:_"));
   clearLine(2);
   lcd.print(F("C5:_ C6:_"));
+  clearLine(3);
+  lcd.print(F("T:     "));
+  lcd.print(0xDF);
+  lcd.print(F("C | H:     %"));
 }
 
 void asAllExpFinished()
@@ -240,6 +244,8 @@ void blink(int _delay = 50)
   delay(_delay);
 }
 
+void debug();
+
 void setup()
 {
   // debug_init();
@@ -296,20 +302,22 @@ void setup()
   lcd.print(F("Battery Test Chamber"));
   lcd.setCursor(0, 2);
   lcd.print(F("Waiting for INS!"));
-  Serial.print(F("Waiting for INS!"));
+  Serial.println(F("Waiting for INS!"));
   unsigned long t = millis();
   while (millis() < t + 2000)
   {
     if (Serial.available())
     {
       String code = Serial.readStringUntil('\n');
-      Serial.print(F("Received Code :"));
+      Serial.print(F("Received Code : "));
       Serial.println(code);
       if (code == "CAL")
       {
         // send the device in callibration mode
         // which is on chargin
         Serial.println(F("Gone into callibration."));
+        clearLine(2);
+        lcd.print(F("In Callibration"));
         for (uint8_t i = 0; i < N_CELL_CAPABLE; i++)
         {
           setCellChargeDischarge(i + 1, relay_cell_charge);
@@ -322,6 +330,8 @@ void setup()
       else
       {
         // read the file name and send everycontetn of it
+        clearLine(2);
+        lcd.print(F("In Data Transfer"));
         api.sendDirectory(code);
       }
     }
@@ -329,12 +339,21 @@ void setup()
 
   // blink(2000);
   clearLine(2);
-  test();
+  // test();
 }
 
 void loop()
 {
   // put your main code here, to run repeatedly:
-  runExp();
-  updateLCDView();
+  // runExp();
+  // updateLCDView();
+  Serial.println("Doing");
+  bool address[4] = {false, false, false, false};
+  channelTheMux(address);
+  for (unsigned int i = 0; i < temp_average_sample_count; i++)
+  {
+    float raw = measureFromADS(tem_sen_ads_location[0][0]);
+    Serial.println(raw);
+  }
+  delay(4000);
 }

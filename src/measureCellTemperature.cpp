@@ -9,9 +9,8 @@ float *measureCellTemperature(unsigned char cell_id, float *temps)
 
     // 6 sensors and 2 samples == 97ms
 
-    float V_0 = 5.0;      // Volt
+    float V_0 = 5.15;     // Volt,, for the given smps it's that voltage
     float R_1 = 200000.0; // ohm
-
     // store all the temperature for a particular cell
     const byte *T_Address = pgm_read_ptr(&cell_temperature_addresses[cell_id - 1]);
     // for(int i=0;i<6;i++){
@@ -33,6 +32,7 @@ float *measureCellTemperature(unsigned char cell_id, float *temps)
         for (unsigned int i = 0; i < temp_average_sample_count; i++)
         {
             raw = measureFromADS(tem_sen_ads_location[cell_id][curr_sen]);
+            Serial.println(raw);
             sum += raw;
         }
 
@@ -41,7 +41,7 @@ float *measureCellTemperature(unsigned char cell_id, float *temps)
 
         // convert into  °C formula provided by datasheet ntc 100k
         float t = (-1.0 / ntc_b) * (log(((R_1 * sum) / (ntc_a * (V_0 - sum))) - (ntc_c / ntc_a)));
-        // Serial.println(((R_1 * sum) / (ntc_a * (V_0 - sum))) - (ntc_c / ntc_a));
+        // Serial.println(t);
         temps[curr_sen] = t;
     }
     return temps;
