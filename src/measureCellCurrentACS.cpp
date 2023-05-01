@@ -8,7 +8,8 @@ float measureCellCurrentACS(unsigned char cell_id)
     // return measured current in Ampere from ACS sensor
     // takes around 8ms/sample
     // 107 ms for 10 samples
-    float offset = 0; // after calibration
+    float V_middle = V_Ref / 2; // chanege accroding to the input voltage of +5V in arduino or the circuit
+    float offset = 0;           // after calibration
     float sum = 0.0;
     // set the proper channel for for mux to ads
     bool address[4];
@@ -25,5 +26,5 @@ float measureCellCurrentACS(unsigned char cell_id)
     }
     float acsValue = float(sum / cur_average_sample_count);
     // Serial.println(acsValue, 5);
-    return -float((2.5 - acsValue + offset) / acs_sensitivity);
+    return -float((V_middle - acsValue + offset) / acs_sensitivity);
 }

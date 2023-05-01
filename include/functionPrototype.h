@@ -89,4 +89,5 @@ void lcd_init();
 void updateLCDView(bool force = false);
 void handleStatusForChannel(uint8_t channelId, uint8_t y, uint8_t x);
 void restChamber();
+void debug();
 #endif // PROTOTYPE

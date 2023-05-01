@@ -78,7 +78,7 @@ bool ConstantChargeDischarge::placeNewSubExp(ReadWriteExpAPI *api)
         }
         clearLine(3);
         lcd.print(F("Amb:"));
-        Serial.print(F("\rAmb"));
+        Serial.print(F("Amb"));
         lcd.print(t);
         Serial.print(t);
         lcd.write(0xDF);
@@ -97,6 +97,9 @@ bool ConstantChargeDischarge::placeNewSubExp(ReadWriteExpAPI *api)
     }
     Serial.println();
     clearLine(3);
+    lcd.print(F("T:     "));
+    lcd.write(0xDF);
+    lcd.print(F("C | H:     %"));
 
     return status;
 }

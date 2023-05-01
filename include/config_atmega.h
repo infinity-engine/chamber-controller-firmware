@@ -11,7 +11,7 @@
 #define adc3 3
 
 // Mux Pins
-#define S0 47
+#define S0 45
 #define S1 43
 #define S2 41
 #define S3 39
@@ -70,4 +70,7 @@
 
 #define ESP_INT_PIN 19
 #define ATMEGA_INT_PIN 18
+
+#define V_Ref 5.19 // change this value according to the circuit supply voltage
+
 #endif // CONFIG_ATMEGA

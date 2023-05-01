@@ -150,6 +150,7 @@ void lcd_init()
     delay(100);
     lcd.setCursor(0, 2);
     lcd.print(F("Starting Engine"));
+    clearLine(3);
     for (uint8_t i = 0; i < 80; i++)
     {
         updateProgressBar(i, 80, 3);
@@ -195,6 +196,7 @@ void updateLCDView(bool force)
             lcd.write(0xDF);
             lcd.setCursor(14, 3);
             lcd.print(exps[i].chmMeas.avgHum);
+            break;
         }
     }
 }
@@ -241,12 +243,12 @@ void updateProgressBar(unsigned long count, unsigned long totalCount, int lineTo
             lcd.write(5);
         }
     }
-    if (count + 1 != totalCount)
+    else if (count + 1 != totalCount)
     {
         lcd.setCursor(number, lineToPrintOn);
         lcd.write(remainder);
     }
-    if (number < 16)
+    else if (number < 16)
     {
         for (int j = number + 1; j <= 16; j++)
         {

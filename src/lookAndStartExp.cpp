@@ -36,6 +36,7 @@ bool lookAndStartExp(ReadWriteExpAPI *api, ConversationAPI *cpi, ConstantChargeD
     Serial.println(F("Loading Exps..."));
     clearLine(3);
     lcd.print(F("Loading EXPs.."));
+
     if (!api->loadExps(expArray))
     {
         Serial.println(F("Load Exp Failed!"));

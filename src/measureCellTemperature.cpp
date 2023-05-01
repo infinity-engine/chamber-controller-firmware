@@ -2,6 +2,15 @@
 #include "functionPrototype.h"
 #include "config_const.h"
 
+/**
+ * @brief
+ * cell_id starts from 1,2...6
+ * time consumption = 8ms/sample/sensor
+ * 6 sensors and 2 samples == 97ms
+ * @param cell_id
+ * @param temps
+ * @return float*
+ */
 float *measureCellTemperature(unsigned char cell_id, float *temps)
 {
     // cell_id starts from 1,2...6
@@ -9,7 +18,7 @@ float *measureCellTemperature(unsigned char cell_id, float *temps)
 
     // 6 sensors and 2 samples == 97ms
 
-    float V_0 = 5.15;     // Volt,, for the given smps it's that voltage
+    float V_0 = V_Ref;    // Volt,, for the given smps it's that voltage
     float R_1 = 200000.0; // ohm
     // store all the temperature for a particular cell
     const byte *T_Address = pgm_read_ptr(&cell_temperature_addresses[cell_id - 1]);
@@ -31,8 +40,8 @@ float *measureCellTemperature(unsigned char cell_id, float *temps)
         delay(AcsSettleDelay); // give some time to acs to settle
         for (unsigned int i = 0; i < temp_average_sample_count; i++)
         {
-            raw = measureFromADS(tem_sen_ads_location[cell_id][curr_sen]);
-            Serial.println(raw);
+            raw = measureFromADS(tem_sen_ads_location[cell_id - 1][curr_sen]);
+            // Serial.println(raw);
             sum += raw;
         }
 

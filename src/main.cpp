@@ -156,7 +156,7 @@ void test()
   {
     Serial.println(F("Retrying to get exp."));
     clearLine(2);
-    lcd.print(F("Trying to get exp..."));
+    lcd.print(F("Trying to get EXP..."));
     delay(2000);
   }
   Serial.println(F("Exp Started."));
@@ -167,10 +167,6 @@ void test()
   lcd.print(F("C1:_ C2:_ C3:_ C4:_"));
   clearLine(2);
   lcd.print(F("C5:_ C6:_"));
-  clearLine(3);
-  lcd.print(F("T:     "));
-  lcd.print(0xDF);
-  lcd.print(F("C | H:     %"));
 }
 
 void asAllExpFinished()
@@ -339,21 +335,30 @@ void setup()
 
   // blink(2000);
   clearLine(2);
-  // test();
+  test();
 }
 
 void loop()
 {
   // put your main code here, to run repeatedly:
-  // runExp();
-  // updateLCDView();
-  Serial.println("Doing");
-  bool address[4] = {false, false, false, false};
+  runExp();
+  updateLCDView();
+  // debug();
+}
+
+void debug()
+{
+  // Serial.println("Doing");
+  // bool address[4] = {true, false, false, false};
+  // channelTheMux(address);
+  // for (unsigned int i = 0; i < temp_average_sample_count; i++)
+  // {
+  //   float raw = measureFromADS(tem_sen_ads_location[0][1]);
+  //   Serial.println(raw);
+  // }
+  Serial.println("Again");
+  bool address[4] = {true, true, false, true};
   channelTheMux(address);
-  for (unsigned int i = 0; i < temp_average_sample_count; i++)
-  {
-    float raw = measureFromADS(tem_sen_ads_location[0][0]);
-    Serial.println(raw);
-  }
+  Serial.println(measureFromADS(cur_sen_ads_location[3]));
   delay(4000);
 }

@@ -21,7 +21,7 @@ float a = 283786.2;
 float b = 0.06593;
 float c = 49886.0;
 */
-extern const float ntc_a = 283786.2, ntc_b = 0.06593, ntc_c = 39886.0; // 0.4 deg drop per 1000 drop
+extern const float ntc_a = 283786.2, ntc_b = 0.06593, ntc_c = 49886.0; // 0.4 deg drop per 1000 drop
 
 // DHT sensor
 uint8_t no_of_dht_sensor_connected = 4; // Max 4

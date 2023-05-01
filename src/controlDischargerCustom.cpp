@@ -3,8 +3,8 @@
 
 #include "config_const.h"
 
-#define current_multiplier_out 1.064
-#define current_multiplier_in 1.0681
+#define current_multiplier_out 0.9
+#define current_multiplier_in 1.0
 
 extern MCP4921 MCP[];
 
@@ -58,7 +58,7 @@ float getDischargerCurrent(unsigned char discharger_id)
     analogRead(cur_measure_pin_location_discharger[discharger_id - 1]);
     for (unsigned char i = 0; i < no_of_samples; i++)
     {
-        sum += analogRead(cur_measure_pin_location_discharger[discharger_id - 1]);
+        sum += analogRead(cur_measure_pin_location_discharger[discharger_id - 1]) * V_Ref / 5.0;
     }
     current_measurement = sum / no_of_samples;
     current_measurement = myMap(current_measurement, 0, 1023, 0, 5);                  // scale the 8 bit arduino mega measurement to 5 volt.
