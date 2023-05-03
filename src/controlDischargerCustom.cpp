@@ -3,8 +3,8 @@
 
 #include "config_const.h"
 
-#define current_multiplier_out 0.9
-#define current_multiplier_in 1.0
+#define current_multiplier_out 0.95 // callibration factor for setting the current
+#define current_multiplier_in 1.06  // callibration factor for measurement
 
 extern MCP4921 MCP[];
 
