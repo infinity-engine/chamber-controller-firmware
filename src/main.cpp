@@ -156,7 +156,7 @@ void test()
   {
     Serial.println(F("Retrying to get exp."));
     clearLine(2);
-    lcd.print(F("Trying to get exp..."));
+    lcd.print(F("Trying to get EXP..."));
     delay(2000);
   }
   Serial.println(F("Exp Started."));
