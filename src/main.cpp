@@ -155,12 +155,11 @@ void test()
   while (!lookAndStartExp(&api, &cpi, exps))
   {
     Serial.println(F("Retrying to get exp."));
-    clearLine(2);
+    clearLine(3);
     lcd.print(F("Trying to get EXP..."));
     delay(2000);
   }
   Serial.println(F("Exp Started."));
-  lcd.clear();
   clearLine(0);
   lcd.print(F("Ongoing Tests"));
   clearLine(1);

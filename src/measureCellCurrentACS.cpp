@@ -2,7 +2,7 @@
 #include "functionPrototype.h"
 #include "config_const.h"
 
-float measureCellCurrentACS(unsigned char cell_id)
+float measureCellCurrentACS(unsigned char cell_id, float prevValue)
 {
     // cell_id starts from 1,2...6
     // return measured current in Ampere from ACS sensor
@@ -26,5 +26,6 @@ float measureCellCurrentACS(unsigned char cell_id)
     }
     float acsValue = float(sum / cur_average_sample_count);
     // Serial.println(acsValue, 5);
-    return -float((V_middle - acsValue + offset) / acs_sensitivity);
+    float newValue = -float((V_middle - acsValue + offset) / acs_sensitivity);
+    return getMovingAverage(newValue, prevValue, 0.5);
 }

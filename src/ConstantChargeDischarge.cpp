@@ -11,18 +11,24 @@ ConstantChargeDischarge::ConstantChargeDischarge(uint8_t channelId)
     reset(channelId);
 }
 
-void ConstantChargeDischarge::reset(unsigned char cell_id, unsigned char mode)
+void ConstantChargeDischarge::measurementReset()
 {
     measurement = {
         0,                  // current
         0,                  // voltage
         {0, 0, 0, 0, 0, 0}, // temperatures
-        0                   // avgtemperatue
+        0                   // avgtemperature
     };
+    chmMeas = {0, 0};
+}
+
+void ConstantChargeDischarge::reset(unsigned char cell_id, unsigned char mode)
+{
+    measurementReset();
     // cell_id = 0 means no channel
     parameters = {cell_id, 4.9, 2.0, 80, -20, 5}; // default value need to change according to the cell info from cloud
     expParamters = {mode, 0, 0, 0, 0, 0, 0, 0, 0.1, 0, 0, 0, 25, 4.2, 4.2, 1000};
-    chmMeas = {0, 0};
+
     curRowIndex = 0; // point to multiplier
     noOfSubExps = 0;
     nthCurSubExp = 0;
@@ -153,6 +159,7 @@ bool ConstantChargeDischarge::prepareForNextSubExp()
     }
     curRowIndex = 1; // multiplier index for cur row.
     nthCurSubExp += 1;
+    measurementReset();
     return true;
 }
 
@@ -287,7 +294,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
     float hold_tolerance = 0.1;
     measureCellTemperature(parameters.cellId, measurement.temperature); // 97ms for 6 sensors and 2 samples
     measurement.avgTemperature = measureAvgCellTemp(parameters.cellId, measurement.temperature);
-    measurement.voltage = measureCellVoltage(parameters.cellId); // 39ms for for 5 samples
+    measurement.voltage = measureCellVoltage(parameters.cellId, measurement.voltage); // 39ms for for 5 samples
     chmMeas.avgHum = measureChamberAverageHumidity();
     chmMeas.avgTemp = measureChamberAverageTemperature();
 
@@ -301,7 +308,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
     switch (expParamters.mode)
     {
     case ConstantCurrentCharge:
-        measurement.current = measureCellCurrentACS(parameters.cellId);
+        measurement.current = measureCellCurrentACS(parameters.cellId, measurement.current);
         if (expParamters.voltLimit != 0 && measurement.voltage > expParamters.voltLimit)
         {
             Serial.print(F("CH "));
@@ -332,7 +339,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
         }
         break;
     case ConstantCurrentDischarge:
-        measurement.current = getDischargerCurrent(parameters.cellId);
+        measurement.current = getDischargerCurrent(parameters.cellId, measurement.current);
         if (expParamters.voltLimit != 0 && measurement.voltage < expParamters.voltLimit)
         {
             Serial.print(F("CH "));
@@ -380,7 +387,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
     case _Rest:
         // do nothing only just mark measurement,
         // outside time check will automaticly check it
-        measurement.current = getDischargerCurrent(parameters.cellId);
+        measurement.current = getDischargerCurrent(parameters.cellId, measurement.current);
         break;
     case Hold:
         // assuming the hold period will be to prevent the natural fall of cell voltage
@@ -395,7 +402,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
         {
             setCellChargeDischarge(parameters.cellId, relay_cell_charge);
         }
-        measurement.current = measureCellCurrentACS(parameters.cellId);
+        measurement.current = measureCellCurrentACS(parameters.cellId, measurement.current);
         break;
     default:
         status = EXP_NOT_STARTED;
@@ -521,11 +528,11 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigne
     // get rest of the measurement
     if (isOnDischarge)
     {
-        measurement.current = getDischargerCurrent(parameters.cellId);
+        measurement.current = getDischargerCurrent(parameters.cellId, measurement.current);
     }
     else
     {
-        measurement.current = getCurrentACS(parameters.cellId);
+        measurement.current = getCurrentACS(parameters.cellId, measurement.current);
     }
 
     return status;

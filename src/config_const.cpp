@@ -6,14 +6,14 @@
 #include <Arduino.h>
 
 uint8_t no_of_temp_sen_connected_cell[6] = {6, 6, 6, 6, 6, 6}; // set the no of temperature connected in each cells
-extern const uint16_t temp_average_sample_count = 5;           // set the no. of samples for avereging the temperature readings
+extern const uint16_t temp_average_sample_count = 2;           // set the no. of samples for avereging the temperature readings
 
 // voltage sensor
-extern const uint16_t vol_average_sample_count = 5; // set the no. of samples for averaging the voltage measurement
+extern const uint16_t vol_average_sample_count = 2; // set the no. of samples for averaging the voltage measurement
 
 // current sensor
-extern const uint16_t cur_average_sample_count = 10; // set the no. of samples for averaging the current measurement
-extern const float acs_sensitivity = 0.1;            // 0.1 - 20A range, 0.185 - 5A range, 0.066 - 30A range
+extern const uint16_t cur_average_sample_count = 4; // set the no. of samples for averaging the current measurement
+extern const float acs_sensitivity = 0.1;           // 0.1 - 20A range, 0.185 - 5A range, 0.066 - 30A range
 
 // NTC 100K parameters
 /*

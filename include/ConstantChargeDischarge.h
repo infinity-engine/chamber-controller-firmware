@@ -44,5 +44,6 @@ public:
     bool placeNewSubExp(ReadWriteExpAPI *api);
     void recordData(ReadWriteExpAPI &api, ConversationAPI &cpi);
     void formRow(char *);
+    void measurementReset();
 };
 #endif // CCHDIS_H

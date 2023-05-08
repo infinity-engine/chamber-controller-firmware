@@ -8,9 +8,6 @@
 
 extern MCP4921 MCP[];
 
-float previous_cur_measurement[6] = {0, 0, 0, 0, 0, 0};
-float previous_temp_measurement[6] = {0, 0, 0, 0, 0, 0};
-
 // refer to https://github.com/infinity-engine/electronic-load.git for the circuit diagram
 //  all the formula are referred to the circuit diagram.
 
@@ -37,18 +34,14 @@ void setDischargerCurrent(unsigned char discharger_id, float set_current)
     }
 }
 
-float getDischargerCurrent(unsigned char discharger_id)
+float getDischargerCurrent(unsigned char discharger_id, float prevValue)
 {
     // takes around 1.5ms for 10 sample average
-    // calculates running average with the average of 10 samples
-    // running average for previous 1/(1-beta) = 10 samples
-    //  beta = 0.9;
     // amplifier gain from the discharger circuit
     //  1+R4/R3 = 1+330k/10k = 34;
     // voltage to current equivalent
     // measured_current = measured_voltage/R10
     //  i = (v/gain)/0.01;
-    const float beta = 0;
     const float gain = 34;
     const float R10 = 0.01; // in ohms
     const unsigned char no_of_samples = 10;
@@ -63,13 +56,12 @@ float getDischargerCurrent(unsigned char discharger_id)
     current_measurement = sum / no_of_samples;
     current_measurement = myMap(current_measurement, 0, 1023, 0, 5);                  // scale the 8 bit arduino mega measurement to 5 volt.
     current_measurement = (current_measurement / gain) / R10 / current_multiplier_in; // scale the voltage to current
-    previous_cur_measurement[discharger_id - 1] = beta * previous_cur_measurement[discharger_id - 1] + (1 - beta) * current_measurement;
-    return previous_cur_measurement[discharger_id - 1];
+
+    return getMovingAverage(current_measurement, prevValue, 0.09);
 }
 
 float getDischargerMosfetTemp(unsigned char discharger_id)
-{
-    const float beta = 0.9;                             // for running average
+{                                                       // for running average
     const float a = 283786.2, b = 0.06593, c = 49886.0; // check the datasheet
     const unsigned char no_of_samples = 10;
     const float V_0 = 5.0;      // Volt
@@ -85,8 +77,7 @@ float getDischargerMosfetTemp(unsigned char discharger_id)
     current_measurement = sum / no_of_samples;
     current_measurement = myMap(current_measurement, 0, 1023, 0, 5);                                                       // scale the 8 bit, 2^8 = 1024 arduino mega measurement to 5 volt.
     current_measurement = (-1.0 / b) * (log(((R11 * current_measurement) / (a * (V_0 - current_measurement))) - (c / a))); // scalling the voltage to temp in degC
-    previous_temp_measurement[discharger_id - 1] = beta * previous_temp_measurement[discharger_id - 1] + (1 - beta) * current_measurement;
-    return previous_temp_measurement[discharger_id - 1];
+    return current_measurement;
 }
 /**
  * @brief
@@ -128,7 +119,7 @@ void setChargerCurrent(unsigned char discharger_id, float set_current)
     // charger id 1,2,3,4,5,6
 }
 
-float getCurrentACS(unsigned char discharger_id)
+float getCurrentACS(unsigned char discharger_id, float prevValue)
 {
     // current measurement using acs sensor
     return 0;

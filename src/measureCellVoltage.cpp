@@ -3,7 +3,7 @@
 #include <math.h>
 #include "config_const.h"
 
-float measureCellVoltage(unsigned char cell_id)
+float measureCellVoltage(unsigned char cell_id, float prevCellVoltage)
 {
     // cell_id starts from 1,2...6
     // returns cell voltages in Volt measured with the help of ads
@@ -22,5 +22,6 @@ float measureCellVoltage(unsigned char cell_id)
     {
         sum += measureFromADS(vol_sen_ads_location[cell_id - 1]);
     }
-    return float(sum / vol_average_sample_count);
+    float newVoltage = float(sum / vol_average_sample_count);
+    return getMovingAverage(newVoltage, prevCellVoltage,0.09);
 }

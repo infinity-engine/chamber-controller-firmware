@@ -193,7 +193,6 @@ void updateLCDView(bool force)
         {
             lcd.setCursor(2, 3);
             lcd.print(exps[i].chmMeas.avgTemp);
-            lcd.write(0xDF);
             lcd.setCursor(14, 3);
             lcd.print(exps[i].chmMeas.avgHum);
             break;

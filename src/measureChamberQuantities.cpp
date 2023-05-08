@@ -4,6 +4,9 @@
 
 extern DHT dht[];
 
+float prevChTemp[4] = {0, 0, 0, 0};
+float prevChHum[4] = {0, 0, 0, 0};
+
 float measureChamberAverageTemperature()
 {
     // returns the average of temperature(degC) reading from all the dht sensors
@@ -24,7 +27,8 @@ float measureChamberTemperature(uint8_t sensor_id)
 {
     // measures the chamber temperature(degC) with the help of DHT sensor
     float t = dht[sensor_id].readTemperature();
-    return t;
+    prevChTemp[sensor_id] = getMovingAverage(t, prevChTemp[sensor_id], 0.1);
+    return prevChTemp[sensor_id];
 }
 
 float measureChamberAverageHumidity()
@@ -48,5 +52,6 @@ float measureChamberHumidity(uint8_t sensor_id)
 {
     // measures the chamber humidity(%) with the help of DHT sensor
     float h = dht[sensor_id].readHumidity();
-    return h;
+    prevChHum[sensor_id] = getMovingAverage(h, prevChHum[sensor_id], 0.1);
+    return prevChHum[sensor_id];
 }
