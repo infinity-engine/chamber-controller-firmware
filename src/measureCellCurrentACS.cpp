@@ -27,5 +27,5 @@ float measureCellCurrentACS(unsigned char cell_id, float prevValue)
     float acsValue = float(sum / cur_average_sample_count);
     // Serial.println(acsValue, 5);
     float newValue = -float((V_middle - acsValue + offset) / acs_sensitivity);
-    return getMovingAverage(newValue, prevValue, 0.5);
+    return getMovingAverage(newValue, prevValue, 0.1);
 }

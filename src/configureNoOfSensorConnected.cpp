@@ -12,8 +12,11 @@ void configureNoOfSensorConnected()
         uint8_t valid_no_sensor = 0;
         for (uint8_t j = 0; j < MaxNoTempSenPossible; j++)
         {
+            // Serial.println(temps[j]);
             if (temps[j] > TemperatureCutOffFilterLimit)
                 valid_no_sensor++;
+            else
+                break;
         }
         Serial.print(F("CH-"));
         Serial.print(i + 1);

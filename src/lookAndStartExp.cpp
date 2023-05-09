@@ -15,7 +15,7 @@ bool lookAndStartExp(ReadWriteExpAPI *api, ConversationAPI *cpi, ConstantChargeD
     lcd.print(F("T:"));
     lcd.print(chT);
     lcd.write(0xDF);
-    lcd.print(F("C   H:"));
+    lcd.print(F("C | H:"));
     lcd.print(chH);
     lcd.print(F("%"));
 

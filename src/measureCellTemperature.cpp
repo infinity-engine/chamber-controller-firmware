@@ -51,7 +51,6 @@ float *measureCellTemperature(unsigned char cell_id, float *temps)
         // convert into  °C formula provided by datasheet ntc 100k
         float t = (-1.0 / ntc_b) * (log(((R_1 * sum) / (ntc_a * (V_0 - sum))) - (ntc_c / ntc_a)));
         // Serial.println(t);
-
         temps[curr_sen] = getMovingAverage(t, temps[curr_sen]);
     }
     return temps;
