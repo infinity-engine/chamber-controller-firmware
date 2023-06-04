@@ -6,6 +6,8 @@
 #define current_multiplier_out 0.95 // callibration factor for setting the current
 #define current_multiplier_in 1.06  // callibration factor for measurement
 
+extern CallibrationParameters calParams[];
+
 extern MCP4921 MCP[];
 
 // refer to https://github.com/infinity-engine/electronic-load.git for the circuit diagram
@@ -21,7 +23,7 @@ void setDischargerCurrent(unsigned char discharger_id, float set_current)
     // or set_voltage = current_flow*0.01*(340k/10k)
     // or set_voltage = 0.34*current_flow
 
-    float set_voltage = 0.34 * set_current * current_multiplier_out;
+    float set_voltage = 0.34 * set_current * calParams[discharger_id - 1].currentMultiplierOut;
     unsigned int mcp_eqv = int(myMap(set_voltage, 0, 5, 0, 4095));
     MCP[discharger_id - 1].analogWrite(mcp_eqv, 0);
     if (mcp_eqv == 0)
@@ -54,8 +56,8 @@ float getDischargerCurrent(unsigned char discharger_id, float prevValue)
         sum += analogRead(cur_measure_pin_location_discharger[discharger_id - 1]) * V_Ref / 5.0;
     }
     current_measurement = sum / no_of_samples;
-    current_measurement = myMap(current_measurement, 0, 1023, 0, 5);                  // scale the 8 bit arduino mega measurement to 5 volt.
-    current_measurement = (current_measurement / gain) / R10 / current_multiplier_in; // scale the voltage to current
+    current_measurement = myMap(current_measurement, 0, 1023, 0, 5);                                             // scale the 8 bit arduino mega measurement to 5 volt.
+    current_measurement = (current_measurement / gain) / R10 / calParams[discharger_id - 1].currentMultiplierIn; // scale the voltage to current
 
     return getMovingAverage(current_measurement, prevValue, 0.09);
 }

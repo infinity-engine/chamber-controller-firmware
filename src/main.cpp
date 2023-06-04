@@ -56,6 +56,8 @@ ReadWriteExpAPI api; // 177 bytes
 
 ConversationAPI cpi;
 
+CallibrationParameters calParams[N_CELL_CAPABLE];
+
 /**
  * @brief get new set of sub experiment, for all the channels from an api call store them in sd card;
  * create a new instance of the first sub exp;
@@ -256,6 +258,7 @@ void setup()
 
   blink();
   pinInit();
+  calibrationInit();
   lcd_init();
   lcd.clear();
   lcd.setCursor(0, 0);

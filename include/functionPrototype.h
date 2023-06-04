@@ -9,6 +9,13 @@ class ReadWriteExpAPI;
 class ConversationAPI;
 class ConstantChargeDischarge;
 
+struct CallibrationParameters
+{
+    float acsOffset;
+    float currentMultiplierOut;
+    float currentMultiplierIn;
+};
+
 struct CellMeasurement
 {
     float current;
@@ -91,4 +98,5 @@ void handleStatusForChannel(uint8_t channelId, uint8_t y, uint8_t x);
 void restChamber();
 void debug();
 float getMovingAverage(float newValue, float prevValue, float beta = 0.4);
+void calibrationInit();
 #endif // PROTOTYPE

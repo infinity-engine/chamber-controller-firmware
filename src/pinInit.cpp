@@ -4,6 +4,7 @@
 #include "functionPrototype.h"
 #include <DHT.h>
 extern DHT dht[];
+extern CallibrationParameters calParams[];
 void pinInit()
 {
 

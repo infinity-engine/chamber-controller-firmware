@@ -2,6 +2,9 @@
 #include "functionPrototype.h"
 #include "config_const.h"
 
+extern CallibrationParameters calParams[];
+// after calibration
+
 float measureCellCurrentACS(unsigned char cell_id, float prevValue)
 {
     // cell_id starts from 1,2...6
@@ -9,7 +12,7 @@ float measureCellCurrentACS(unsigned char cell_id, float prevValue)
     // takes around 8ms/sample
     // 107 ms for 10 samples
     float V_middle = V_Ref / 2; // chanege accroding to the input voltage of +5V in arduino or the circuit
-    float offset = 0;           // after calibration
+    float offset = calParams[cell_id - 1].acsOffset;
     float sum = 0.0;
     // set the proper channel for for mux to ads
     bool address[4];
