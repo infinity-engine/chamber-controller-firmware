@@ -314,7 +314,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
             Serial.println(F(": Voltage limit achieved."));
-            status = EXP_FINISHED;
+            status = checker(cpi, status);
         }
         if ((measurement.voltage > parameters.maxVoltage || measurement.voltage < parameters.minVoltage) && LIMIT_TO_BE_CHECK)
         {
@@ -345,7 +345,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
             Serial.println(F(": Voltage limit achieved."));
-            status = EXP_FINISHED;
+            status = checker(cpi, status);
         }
         if ((measurement.voltage > parameters.maxVoltage || measurement.voltage < parameters.minVoltage) && LIMIT_TO_BE_CHECK)
         {
@@ -355,7 +355,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
             Serial.println(F(": Voltage limit crossed"));
-            status = EXP_FINISHED; // completed
+            status = checker(cpi, status);
         }
         if ((measurement.avgTemperature > parameters.maxTemp || measurement.avgTemperature < parameters.minTemp) && LIMIT_TO_BE_CHECK)
         {
@@ -426,24 +426,36 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
                 Serial.println(F(": Time's up / row multiplier index."));
             }
 
-            if (curRowIndex == expParamters.multiplier)
-            {
-                status = EXP_FINISHED; // completed
-                finish();
-                cpi.setStatus(EXP_FINISHED, parameters.cellId, nthCurSubExp);
-            }
-            else
-            {
-                cpi.incrementMultiplier(parameters.cellId, nthCurSubExp);
-                curRowIndex += 1;
-                timeReset();
-            }
+            status = checker(cpi, status);
         }
     }
     if (status != EXP_RUNNING)
     {
         overallStatus = status;
         finish();
+    }
+    return status;
+}
+
+/**
+ * @brief Check whther to send the row increment multiplier or experiment finish instruction to  network module
+ * should trrigger on succesful completion of current index of a sub exp
+ * @param api
+ * @param cpi
+ */
+unsigned char ConstantChargeDischarge::checker(ConversationAPI &cpi, unsigned char status)
+{
+    if (curRowIndex == expParamters.multiplier)
+    {
+        status = EXP_FINISHED; // completed
+        finish();
+        cpi.setStatus(EXP_FINISHED, parameters.cellId, nthCurSubExp);
+    }
+    else
+    {
+        cpi.incrementMultiplier(parameters.cellId, nthCurSubExp);
+        curRowIndex += 1;
+        timeReset();
     }
     return status;
 }
