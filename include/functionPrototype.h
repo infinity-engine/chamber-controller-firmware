@@ -95,6 +95,7 @@ void clearLine(uint8_t line);
 void lcd_init();
 void updateLCDView(bool force = false);
 void handleStatusForChannel(uint8_t channelId, uint8_t y, uint8_t x);
+void updateLCDArrow(uint8_t startIndex, uint8_t width, uint8_t lineNo, uint16_t interval = 200);
 void restChamber();
 void debug();
 float getMovingAverage(float newValue, float prevValue, float beta = 0.4);

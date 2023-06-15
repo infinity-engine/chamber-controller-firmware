@@ -256,3 +256,20 @@ void updateProgressBar(unsigned long count, unsigned long totalCount, int lineTo
         }
     }
 }
+
+void updateLCDArrow(uint8_t startIndex, uint8_t width, uint8_t lineNo, uint16_t interval)
+{
+    static uint8_t prevPos = 0;
+    static uint32_t lastUpdateTime = millis();
+    if (millis() - lastUpdateTime < interval)
+        return;
+    lastUpdateTime = millis();
+
+    lcd.setCursor(startIndex + prevPos, lineNo);
+    lcd.print(F("  ")); // clears the previous arrow
+    prevPos++;
+    if (prevPos >= width)
+        prevPos = 0;
+    lcd.setCursor(startIndex + prevPos, lineNo);
+    lcd.print(F("->"));
+}

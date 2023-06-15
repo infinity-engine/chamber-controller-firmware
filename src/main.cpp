@@ -143,6 +143,7 @@ void runExp()
         Serial.println(F(": Exp stopped."));
         exps[i].overallStatus = EXP_STOPPED;
         cpi.setStatus(EXP_STOPPED, exps[i].parameters.cellId); // update the cloud
+        asAllExpFinished();
       }
     }
   }
@@ -190,16 +191,16 @@ void asAllExpFinished()
     }
   }
   updateLCDView(true);
-  Serial.println(F("All exps finished across all channels."));
+  Serial.println(F("All exps processed across all channels."));
   clearLine(3);
-  lcd.print(F("All finsished"));
+  lcd.print(F("All processed"));
   delay(1000);
   cpi.sendMsgID("<END");
   Serial2.print(allStatusCombined);
   Serial2.print("\n>");
   Serial.println(F("Sending data to cloud ...."));
   clearLine(3);
-  lcd.print(F("Data -> cloud"));
+  lcd.print(F("Data->   cloud"));
   cpi.clearInputBuffer();
   while (true)
   {
@@ -213,6 +214,10 @@ void asAllExpFinished()
         lcd.print(F("Cloud -> OK"));
         break;
       }
+    }
+    else
+    {
+      updateLCDArrow(4, 4, 3);
     }
   }
   delay(1000);
