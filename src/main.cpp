@@ -138,7 +138,11 @@ void runExp()
       if (exps[i].curExpStatus == EXP_STOPPED)
       {
         // if any sub exp has stopped.
+        Serial.print(F("CH "));
+        Serial.print(exps[i].parameters.cellId);
+        Serial.println(F(": Exp stopped."));
         exps[i].overallStatus = EXP_STOPPED;
+        cpi.setStatus(EXP_STOPPED, exps[i].parameters.cellId); // update the cloud
       }
     }
   }

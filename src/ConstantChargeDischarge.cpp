@@ -166,6 +166,7 @@ bool ConstantChargeDischarge::prepareForNextSubExp()
 /**
  * @brief to reinitiate time for the sub experiment
  * can also be called on row multiplier index increase
+ * for drive cycle it will set the indicator to start from the beginning
  */
 void ConstantChargeDischarge::timeReset()
 {
@@ -302,6 +303,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
         setChamberTemperature(ambTemp, chmMeas.avgTemp);
 
     unsigned char status = EXP_RUNNING;
+    unsigned char quickStatus = status;
     unsigned long curTime = millis();
     expParamters.prevTime = curTime;
 
@@ -314,23 +316,23 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
             Serial.println(F(": Voltage limit achieved."));
-            status = checker(cpi, status);
+            quickStatus = EXP_FINISHED;
         }
-        if ((measurement.voltage > parameters.maxVoltage || measurement.voltage < parameters.minVoltage) && LIMIT_TO_BE_CHECK)
+        else if ((measurement.voltage > parameters.maxVoltage || measurement.voltage < parameters.minVoltage) && LIMIT_TO_BE_CHECK)
         {
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
             Serial.println(F(": Voltage limit crossed."));
-            status = EXP_STOPPED;
+            quickStatus = EXP_STOPPED;
         }
-        if ((measurement.avgTemperature > parameters.maxTemp || measurement.avgTemperature < parameters.minTemp) && LIMIT_TO_BE_CHECK)
+        else if ((measurement.avgTemperature > parameters.maxTemp || measurement.avgTemperature < parameters.minTemp) && LIMIT_TO_BE_CHECK)
         {
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
             Serial.println(F(": Temperature limit crossed"));
-            status = EXP_STOPPED;
+            quickStatus = EXP_STOPPED;
         }
-        if ((abs(abs(measurement.current) - abs(expParamters.currentRate)) > expParamters.curToll) && LIMIT_TO_BE_CHECK)
+        else if ((abs(abs(measurement.current) - abs(expParamters.currentRate)) > expParamters.curToll) && LIMIT_TO_BE_CHECK)
         {
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
@@ -345,9 +347,9 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
             Serial.println(F(": Voltage limit achieved."));
-            status = checker(cpi, status);
+            quickStatus = EXP_FINISHED;
         }
-        if ((measurement.voltage > parameters.maxVoltage || measurement.voltage < parameters.minVoltage) && LIMIT_TO_BE_CHECK)
+        else if ((measurement.voltage > parameters.maxVoltage || measurement.voltage < parameters.minVoltage) && LIMIT_TO_BE_CHECK)
         {
             // even though you don't want to perform experiment on voltage limit
             // there should be one for safety purpose
@@ -355,17 +357,17 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
             Serial.println(F(": Voltage limit crossed"));
-            status = checker(cpi, status);
+            quickStatus = EXP_FINISHED;
         }
-        if ((measurement.avgTemperature > parameters.maxTemp || measurement.avgTemperature < parameters.minTemp) && LIMIT_TO_BE_CHECK)
+        else if ((measurement.avgTemperature > parameters.maxTemp || measurement.avgTemperature < parameters.minTemp) && LIMIT_TO_BE_CHECK)
         {
 
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
             Serial.println(F(": Temperature limit crossed"));
-            status = EXP_STOPPED; // stopped
+            quickStatus = EXP_STOPPED; // stopped
         }
-        if ((abs(abs(measurement.current) - abs(expParamters.currentRate)) > expParamters.curToll) && LIMIT_TO_BE_CHECK)
+        else if ((abs(abs(measurement.current) - abs(expParamters.currentRate)) > expParamters.curToll) && LIMIT_TO_BE_CHECK)
         {
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
@@ -382,7 +384,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
     case ConstantPowerDischarge:
         break;
     case DriveCycle:
-        status = perFormDriveCycle(api);
+        quickStatus = perFormDriveCycle(api);
         break;
     case _Rest:
         // do nothing only just mark measurement,
@@ -405,30 +407,15 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
         measurement.current = measureCellCurrentACS(parameters.cellId, measurement.current);
         break;
     default:
-        status = EXP_NOT_STARTED;
+        quickStatus = EXP_NOT_STARTED;
         break;
     }
+
     // update the time parameters
     // record data
-
     recordData(api, cpi);
+    status = checker(cpi, quickStatus);
 
-    if (expParamters.timeLimit > 0)
-    {
-        // if time limit is set
-        if (curTime - expParamters.startTime >= expParamters.timeLimit * 1000)
-        {
-            // set time has reached
-            if (ISLOGENABLED)
-            {
-                Serial.print(F("CH "));
-                Serial.print(parameters.cellId);
-                Serial.println(F(": Time's up / row multiplier index."));
-            }
-
-            status = checker(cpi, status);
-        }
-    }
     if (status != EXP_RUNNING)
     {
         overallStatus = status;
@@ -440,15 +427,32 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
 /**
  * @brief Check whther to send the row increment multiplier or experiment finish instruction to  network module
  * should trrigger on succesful completion of current index of a sub exp
+ * also checks for time completion
  * @param api
  * @param cpi
  */
 unsigned char ConstantChargeDischarge::checker(ConversationAPI &cpi, unsigned char status)
 {
+    unsigned char curStatus = status;
+    if (expParamters.timeLimit > 0 && (curTime - expParamters.startTime >= expParamters.timeLimit * 1000))
+    {
+        // if time limit is set and set time has reached
+        if (ISLOGENABLED)
+        {
+            Serial.print(F("CH "));
+            Serial.print(parameters.cellId);
+            Serial.println(F(": Time's up / row multiplier index."));
+        }
+        curStatus = EXP_FINISHED;
+    }
+
+    if (curStatus != EXP_FINISHED)
+        return status;
+
+    // check the below conditions if only curStatus flag is raised by setting it to exp_fineshed
     if (curRowIndex == expParamters.multiplier)
     {
         status = EXP_FINISHED; // completed
-        finish();
         cpi.setStatus(EXP_FINISHED, parameters.cellId, nthCurSubExp);
     }
     else
