@@ -35,7 +35,7 @@ public:
     void setup();
     void timeReset();
     void finish();
-    unsigned char checker(ConversationAPI &cpi, unsigned char prevStatus);
+    unsigned char checker(ConversationAPI &cpi, unsigned char prevStatus, unsigned long curTime);
 
     bool isConAmTe; // is consistant ambient temperature throughout the experiment
     float ambTemp;

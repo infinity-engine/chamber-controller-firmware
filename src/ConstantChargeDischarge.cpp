@@ -414,7 +414,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
     // update the time parameters
     // record data
     recordData(api, cpi);
-    status = checker(cpi, quickStatus);
+    status = checker(cpi, quickStatus,curTime);
 
     if (status != EXP_RUNNING)
     {
@@ -430,8 +430,9 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
  * also checks for time completion
  * @param api
  * @param cpi
+ * @param curTime
  */
-unsigned char ConstantChargeDischarge::checker(ConversationAPI &cpi, unsigned char status)
+unsigned char ConstantChargeDischarge::checker(ConversationAPI &cpi, unsigned char status,unsigned long curTime)
 {
     unsigned char curStatus = status;
     if (expParamters.timeLimit > 0 && (curTime - expParamters.startTime >= expParamters.timeLimit * 1000))
