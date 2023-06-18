@@ -311,7 +311,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
     {
     case ConstantCurrentCharge:
         measurement.current = measureCellCurrentACS(parameters.cellId, measurement.current);
-        if (expParamters.voltLimit != 0 && measurement.voltage > expParamters.voltLimit)
+        if (expParamters.voltLimit != 0 && measurement.voltage >= expParamters.voltLimit)
         {
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
@@ -342,7 +342,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
         break;
     case ConstantCurrentDischarge:
         measurement.current = getDischargerCurrent(parameters.cellId, measurement.current);
-        if (expParamters.voltLimit != 0 && measurement.voltage < expParamters.voltLimit)
+        if (expParamters.voltLimit != 0 && measurement.voltage <= expParamters.voltLimit)
         {
             Serial.print(F("CH "));
             Serial.print(parameters.cellId);
@@ -414,7 +414,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
     // update the time parameters
     // record data
     recordData(api, cpi);
-    status = checker(cpi, quickStatus,curTime);
+    status = checker(cpi, quickStatus, curTime);
 
     if (status != EXP_RUNNING)
     {
@@ -432,7 +432,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
  * @param cpi
  * @param curTime
  */
-unsigned char ConstantChargeDischarge::checker(ConversationAPI &cpi, unsigned char status,unsigned long curTime)
+unsigned char ConstantChargeDischarge::checker(ConversationAPI &cpi, unsigned char status, unsigned long curTime)
 {
     unsigned char curStatus = status;
     if (expParamters.timeLimit > 0 && (curTime - expParamters.startTime >= expParamters.timeLimit * 1000))

@@ -35,4 +35,6 @@ extern const int *const store[];
 
 extern const unsigned int sample_update_delay; // in ms;used to limit how frequently the experiment data are logged at the time of charging experiment
 
+extern bool IS_ESP_CRASHED;
+
 #endif // CONFIG_CONST

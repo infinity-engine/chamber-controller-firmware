@@ -166,6 +166,9 @@ void test()
     lcd.print(F("Trying to get EXP..."));
     delay(2000);
   }
+
+  IS_ESP_CRASHED = false; // reseting this variable
+
   Serial.println(F("Exp Started."));
   clearLine(0);
   lcd.print(F("Ongoing Tests"));
@@ -218,6 +221,18 @@ void asAllExpFinished()
     else
     {
       updateLCDArrow(4, 4, 3);
+    }
+    if (IS_ESP_CRASHED)
+    {
+      IS_ESP_CRASHED = false;
+      Serial.print(F("ESP Crash Detected."));
+      clearLine(3);
+      lcd.print(F("Data upload failed"));
+      delay(2000);
+      clearLine(3);
+      lcd.print(F("Collect data from SD"));
+      delay(3000);
+      break;
     }
   }
   delay(1000);

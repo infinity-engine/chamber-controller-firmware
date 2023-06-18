@@ -5,6 +5,11 @@
 #include <DHT.h>
 extern DHT dht[];
 extern CallibrationParameters calParams[];
+
+bool IS_ESP_CRASHED;
+
+void myISR();
+
 void pinInit()
 {
 
@@ -43,10 +48,16 @@ void pinInit()
 
     // for atmega inteerupts
     pinMode(ATMEGA_INT_PIN, INPUT);
-    // attachInterrupt(digitalPinToInterrupt(ATMEGA_INT_PIN), void, RISING);
+    IS_ESP_CRASHED = false;
+    attachInterrupt(digitalPinToInterrupt(ATMEGA_INT_PIN), myISR, RISING);
 
     for (uint8_t i = 0; i < no_of_dht_sensor_connected; i++)
     {
         dht[i].begin();
     }
+}
+bool IS_ESP_CRASHHED;
+void myISR()
+{
+    IS_ESP_CRASHED = true;
 }
