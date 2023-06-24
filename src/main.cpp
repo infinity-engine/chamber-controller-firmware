@@ -225,7 +225,7 @@ void asAllExpFinished()
     if (IS_ESP_CRASHED)
     {
       IS_ESP_CRASHED = false;
-      Serial.print(F("ESP Crash Detected."));
+      Serial.println(F("ESP Crash Detected."));
       clearLine(3);
       lcd.print(F("Data upload failed"));
       delay(2000);

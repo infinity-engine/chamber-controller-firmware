@@ -73,7 +73,7 @@ bool ConstantChargeDischarge::placeNewSubExp(ReadWriteExpAPI *api)
     // wait for ambient to reach to desred condition
     float t = measureChamberAverageTemperature();
     bool flag = true;
-    while (!isnan(t) && !(t < ambTemp + 0.5 && t > ambTemp - 0.5))
+    while (!INDEPENDENT_AMBIENT && !isnan(t) && !(t < ambTemp + 0.5 && t > ambTemp - 0.5))
     {
         if (flag)
         {
@@ -299,7 +299,7 @@ uint8_t ConstantChargeDischarge::performAction(ReadWriteExpAPI &api, Conversatio
     chmMeas.avgHum = measureChamberAverageHumidity();
     chmMeas.avgTemp = measureChamberAverageTemperature();
 
-    if (isnan(!chmMeas.avgTemp))
+    if (!INDEPENDENT_AMBIENT && isnan(!chmMeas.avgTemp))
         setChamberTemperature(ambTemp, chmMeas.avgTemp);
 
     unsigned char status = EXP_RUNNING;

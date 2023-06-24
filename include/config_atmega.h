@@ -73,4 +73,6 @@
 
 #define V_Ref 5.19 // change this value according to the circuit supply voltage
 
+#define INDEPENDENT_AMBIENT true // if you dont want your experiment config not to bother about ambinet
+
 #endif // CONFIG_ATMEGA
