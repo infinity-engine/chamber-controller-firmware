@@ -479,6 +479,9 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigne
     static bool isOnDischarge;
     if (curTime > expParamters.prevDriveCycleSampleUpdate + expParamters.sampleTime)
     {
+        // Serial.println(expParamters.sampleIndicator);
+        // Serial.println(curTime - expParamters.prevDriveCycleSampleUpdate);
+
         if (expParamters.sampleIndicator == 0)
         {
             // just for the first time
@@ -503,6 +506,7 @@ uint8_t ConstantChargeDischarge::perFormDriveCycle(ReadWriteExpAPI &api, unsigne
         // get the position on cureent batch,array indicator [0 <-> (batchsize-1)]
         unsigned char indicator = ((expParamters.sampleIndicator - 1) % DriveCycleBatchSize);
         float cur_A = expParamters.samples_batch[indicator];
+        // Serial.println(cur_A);
 
         if (cur_A >= 0)
         {

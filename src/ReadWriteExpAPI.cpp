@@ -188,74 +188,83 @@ bool ReadWriteExpAPI::setUpNextSubExp(ConstantChargeDischarge *ccd)
     return true;
 }
 
+/**
+ * @brief
+ *
+ * @param ccd
+ * @param n_samples refers to how much its buffer can accomodate
+ * @return true
+ * @return false
+ */
 bool ReadWriteExpAPI::fillNextDriveCyclePortion(ConstantChargeDischarge *ccd, uint8_t n_samples)
 {
     unsigned long t = millis();
     uint8_t cellIndex = ccd->parameters.cellId - 1;
+
     if (ccd->expParamters.mode != DriveCycle)
     {
         // only valid for drive cycle exp.
         return false;
     }
+
     sd.chdir("/");
     String exNameStr = String(expName);
-    String config = "";
-    config += exNameStr + "/" + exNameStr + "_" + ccd->parameters.cellId + "/inputs/" + ccd->nthCurSubExp + "_driveCycle.csv";
-    // Serial.println(config);
-    file = sd.open(config, FILE_READ);
+    String config = exNameStr + "/" + exNameStr + "_" + ccd->parameters.cellId + "/inputs/" + ccd->nthCurSubExp + "_driveCycle.csv";
 
-    if (file)
+    file = sd.open(config, FILE_READ);
+    if (!file)
     {
-        if (file.seek(dcPtr[cellIndex]))
-        {
-            for (uint8_t i = 0; i < n_samples; i++)
-            {
-                // clearing the previous value in case end
-                ccd->expParamters.samples_batch[i] = 0;
-            }
-            if (!file.available())
-            {
-                // roll back to begininig
-                dcPtr[cellIndex] = 0;
-                file.seek(0);
-            }
-            for (unsigned int i = 0; i < n_samples; i++)
-            {
-                if (dcPtr[cellIndex] == 0)
-                {
-                    file.readStringUntil('\n'); // to bypass the header name of the .csv file
-                }
-                file.readStringUntil(','); // to bypass the time column of the  first coulumn
-                float data = file.readStringUntil('\n').toFloat();
-                // Serial.println(data, 4);
-                if (i + 1 >= ccd->expParamters.total_n_samples)
-                {
-                    // Serial.println(i);
-                    break;
-                }
-                ccd->expParamters.samples_batch[i] = data;
-                if (!file.available())
-                {
-                    // roll back to begininig
-                    dcPtr[cellIndex] = 0;
-                    file.seek(0);
-                }
-            }
-        }
-        dcPtr[cellIndex] = file.position(); // get the postion of next byte from where it to be read or write
+        Serial.println(F("Error opening the config file."));
+        return false;
+    }
+
+    // If the file has fewer data points than requested, rewind to the beginning
+    if (dcPtr[cellIndex] >= file.size())
+    {
+        dcPtr[cellIndex] = 0;
+        file.seek(0);
     }
     else
     {
-        Serial.println(F("Error opening the config file."));
-        file.close();
-        return false;
+        file.seek(dcPtr[cellIndex]);
     }
+
+    uint8_t sampleCount = 0;
+    while (sampleCount < n_samples && file.available())
+    {
+        String line = file.readStringUntil('\n');
+        // Serial.println(line);
+        if (dcPtr[cellIndex] == 0)
+        {
+            dcPtr[cellIndex] = file.position();
+            continue; // Skip the header line
+        }
+
+        int commaIndex = line.indexOf(',');
+        if (commaIndex != -1)
+        {
+            float data = line.substring(commaIndex + 1).toFloat();
+            ccd->expParamters.samples_batch[sampleCount] = data;
+        }
+
+        dcPtr[cellIndex] = file.position();
+        sampleCount++;
+    }
+
     file.close();
+
+    Serial.println(F("Data loaded"));
+    // for (uint8_t i = 0; i < sampleCount; i++)
+    // {
+    //     Serial.println(ccd->expParamters.samples_batch[i], 4);
+    // }
+
     Serial.print(F("CH "));
     Serial.print(ccd->parameters.cellId);
     Serial.print(F(": Took "));
     Serial.print(millis() - t);
-    Serial.println("ms to load DS.");
+    Serial.println(" mS to load DS.");
+
     return true;
 }
 
